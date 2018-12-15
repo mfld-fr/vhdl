@@ -31,11 +31,11 @@ architecture behavior of test_auto is
         "00000000",  -- 5
         "00000000",  -- 6
         "00000000",  -- 7
-        "00000000",  -- 8 - instruction 8 - NOP 1 machine cycle
+        "00000000",  -- 8 - instruction 8 - NOP
         "00000000",  -- 9
         "00000000",  -- A
         "00000000",  -- B
-        "00001101",  -- C - instruction C - NOP 2 machine cycle
+        "11000000",  -- C - instruction C - JMP immediate
         "00000000",  -- D
         "00000000",  -- E
         "00000000"   -- F
@@ -44,22 +44,22 @@ architecture behavior of test_auto is
     type ROM_PROG is array (0 to 2**N - 1) of WORD;
     
     constant rom_prog_0: ROM_PROG := (
-        "1000",  -- 0 - NOP 1
-        "1100",  -- 1 - NOP 2
-        "1000",  -- 2 - NOP 1
-        "1100",  -- 3 - NOP 2
-        "1000",  -- 4 - NOP 1
-        "1100",  -- 5 - NOP 2
-        "1000",  -- 6 - NOP 1
-        "1100",  -- 7 - NOP 2
-        "1000",  -- 8 - NOP 1
-        "1100",  -- 9 - NOP 2
-        "1000",  -- A - NOP 1
-        "1100",  -- B - NOP 2
-        "1000",  -- C - NOP 1
-        "1100",  -- D - NOP 2
-        "1000",  -- E - NOP 1
-        "1100"   -- F - NOP 2
+        "1000",  -- 0 - NOP
+        "1100",  -- 1 - JMP...
+        "1000",  -- 2 - ...8
+        "0000",  -- 3
+        "0000",  -- 4
+        "0000",  -- 5
+        "0000",  -- 6
+        "0000",  -- 7
+        "1000",  -- 8 - NOP
+        "1100",  -- 9 - JMP...
+        "0000",  -- A - ...0
+        "0000",  -- B
+        "0000",  -- C
+        "0000",  -- D
+        "0000",  -- E
+        "0000"   -- F
         );
         
     component mux_2 is
@@ -107,19 +107,22 @@ architecture behavior of test_auto is
     signal index_sel : std_logic;  -- select index source (step or instruction register)
 
     signal C : std_logic_vector (3 downto 0);  -- control bus
-    signal D : WORD;  -- data bus
-    signal A : WORD;  -- address bus
+    signal data_bus : WORD;
+    signal addr_bus : WORD;
     
     signal ins_reg_en : std_logic;  -- instruction register enable
     signal ins_ptr_en : std_logic;  -- instruction pointer enable
 
     signal ptr_inc : WORD;  -- pointer incrementer output
+    signal ptr_next : WORD;  -- pointer next value
+
+    signal ptr_sel : std_logic; -- pointer next value select
 
 begin
 
     reg_ins: reg_flip_flop
         generic map (N => N)
-        port map (I => D, O => ins_index, E => ins_reg_en, R => R, CK => CK);
+        port map (I => data_bus, O => ins_index, E => ins_reg_en, R => R, CK => CK);
     
     mux_index: mux_2
         generic map (N => N)
@@ -137,14 +140,19 @@ begin
     ins_reg_en <= C (0);
     index_sel  <= C (1);
     ins_ptr_en <= C (2);
+    ptr_sel    <= C (3);
 
     ins_ptr: reg_flip_flop
         generic map (N => N)
-        port map (I => ptr_inc, O => A, E => ins_ptr_en, R => R, CK => CK);
+        port map (I => ptr_next, O => addr_bus, E => ins_ptr_en, R => R, CK => CK);
 
-    ptr_inc <= std_logic_vector (to_unsigned (to_integer (unsigned (A)) + 1, N)) when A /= "1111" else "0000";
-    
-    D <= rom_prog_0 (to_integer (unsigned (A)));
+    ptr_inc <= std_logic_vector (to_unsigned (to_integer (unsigned (addr_bus)) + 1, N)) when addr_bus /= "1111" else "0000";
+
+    mux_ptr: mux_2
+        generic map (N => N)
+        port map (I0 => ptr_inc, I1 => data_bus, O => ptr_next, S => ptr_sel);
+
+    data_bus <= rom_prog_0 (to_integer (unsigned (addr_bus)));
 
     clock_1: process
     begin
