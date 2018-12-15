@@ -23,7 +23,7 @@ architecture behavior of test_auto is
     type ROM_STEP is array (0 to 2**N - 1) of STEP;
 
     --   X           data pointer enable
-    --    X          address source select (0: IP, 1: data pointer)
+    --    X          address source select (0: instruction pointer, 1: data pointer)
     --     X         accumulator enable
     --      X        next address select (0: increment address, 1: data bus)
     --       X       instruction pointer enable
@@ -39,35 +39,35 @@ architecture behavior of test_auto is
         "10010000110",  -- 5h  LD DP,immediate (1/2)
         "00001000000",  -- 6h  increment IP (2/2)
         "00000000000",  -- 7h
-        "00000000000",  -- 8h  NOP
+        "01100000000",  -- 8h  LD A,(DP)
         "00000000000",  -- 9h
         "00000000000",  -- Ah
         "00000000000",  -- Bh
         "00011000000",  -- Ch  JMP immediate
         "00000000000",  -- Dh
         "00000000000",  -- Eh
-        "00000000000"   -- Fh
+        "00000000000"   -- Fh  NOP
         );
 
     type ROM_PROG is array (0 to 2**N - 1) of WORD;
-    
+
     constant rom_prog_0: ROM_PROG := (
-        "1000",  -- 0h  NOP
-        "0101",  -- 1h  LD DP,...
-        "1101",  -- 2h  ...Dh
-        "1000",  -- 3h  NOP
-        "0100",  -- 4h  LD A,...
-        "1010",  -- 5h  ...Ah
-        "1100",  -- 6h  JMP...
-        "1000",  -- 7h  ...8h
-        "1000",  -- 8h  NOP
+        "0100",  -- 0h  LD A,...
+        "0001",  -- 1h  ...1h
+        "0101",  -- 2h  LD DP,...
+        "1110",  -- 3h  ...Eh
+        "1000",  -- 4h  LD A,(DP)
+        "0101",  -- 5h  LD DP,...
+        "1111",  -- 6h  ...Fh
+        "1000",  -- 7h  LD A,(DP)
+        "1111",  -- 8h  NOP
         "1100",  -- 9h  JMP...
-        "1100",  -- Ah  ...Ch
+        "0000",  -- Ah  ...0h
         "0000",  -- Bh
-        "0100",  -- Ch  LD A,...
-        "0101",  -- Dh  ..5h
-        "1100",  -- Eh  JMP...
-        "0000"   -- Fh  ...0h
+        "0000",  -- Ch
+        "0000",  -- Dh
+        "0010",  -- Eh  DB 2h
+        "0011"   -- Fh  DB 3h
         );
         
     component mux_2 is
@@ -103,7 +103,6 @@ architecture behavior of test_auto is
 
     signal CK : std_logic := '0';
     signal R : std_logic := '1';
-    signal E : std_logic := '0';
     
     signal step_cur : STEP;
     
