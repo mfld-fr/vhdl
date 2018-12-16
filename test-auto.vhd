@@ -7,7 +7,7 @@ entity test_auto is
 
     generic (
         N : positive := 4;
-        P : positive := 11
+        P : positive := 12
         );
 
 end test_auto;
@@ -22,36 +22,37 @@ architecture behavior of test_auto is
 
     type ROM_STEP is array (0 to 2**N - 1) of STEP;
 
-    --   X           data pointer enable
-    --    X          address source select (0: instruction pointer, 1: data pointer)
-    --     X         accumulator enable
-    --      X        next address select (0: increment address, 1: data bus)
-    --       X       instruction pointer enable
-    --        X      next index select (0: step, 1: instruction register)
-    --         X     instruction register enable
+    --   X            ALU operation select
+    --    X           data pointer enable
+    --     X          address source select (0: instruction pointer, 1: data pointer)
+    --      X         accumulator enable
+    --       X        next address select (0: increment address, 1: data bus)
+    --        X       instruction pointer enable
+    --         X      next index select (0: step, 1: instruction register)
+    --          X     instruction register enable
 
     constant rom_step_0: ROM_STEP := (
-        "00001010001",  -- 0h  load IR & increment IP
-        "00000100000",  -- 1h  decode instruction
-        "00000000000",  -- 2h
-        "00000000000",  -- 3h
-        "00101000000",  -- 4h  LD A,immediate
-        "10010000110",  -- 5h  LD DP,immediate (1/2)
-        "00001000000",  -- 6h  increment IP (2/2)
-        "00000000000",  -- 7h
-        "01100000000",  -- 8h  LD A,(DP)
-        "00000000000",  -- 9h
-        "00000000000",  -- Ah
-        "00000000000",  -- Bh
-        "00011000000",  -- Ch  JMP immediate
-        "00000000000",  -- Dh
-        "00000000000",  -- Eh
-        "00000000000"   -- Fh  NOP
+        "000001010001",  -- 0h  load IR & increment IP
+        "000000100000",  -- 1h  decode instruction
+        "000000000000",  -- 2h
+        "000000000000",  -- 3h
+        "000101000000",  -- 4h  LD A,immediate
+        "010010000110",  -- 5h  LD DP,immediate (1/2)
+        "000001000000",  -- 6h  increment IP (2/2)
+        "000000000000",  -- 7h
+        "001100000000",  -- 8h  LD A,(DP)
+        "000000000000",  -- 9h  TODO: ST (DP),A
+        "000000000000",  -- Ah
+        "000000000000",  -- Bh
+        "000011000000",  -- Ch  JMP immediate
+        "000000000000",  -- Dh
+        "000000000000",  -- Eh
+        "000000000000"   -- Fh  NOP
         );
 
-    type ROM_PROG is array (0 to 2**N - 1) of WORD;
+    type RAM_PROG is array (0 to 2**N - 1) of WORD;
 
-    constant rom_prog_0: ROM_PROG := (
+    signal ram_prog_0: RAM_PROG := (
         "0100",  -- 0h  LD A,...
         "0001",  -- 1h  ...1h
         "0101",  -- 2h  LD DP,...
@@ -70,21 +71,6 @@ architecture behavior of test_auto is
         "0011"   -- Fh  DB 3h
         );
         
-    component mux_2 is
-
-        generic (N : positive);
-
-        port (
-            I0 : in std_logic_vector (N - 1 downto 0);
-            I1 : in std_logic_vector (N - 1 downto 0);
-            
-            O : out std_logic_vector (N - 1 downto 0);
-
-            S : in std_logic  -- select
-            );
-
-    end component;
-
     component reg_flip_flop is
 
         generic (N : positive);
@@ -114,8 +100,10 @@ architecture behavior of test_auto is
     signal index_sel : std_logic;  -- select index source (step or instruction register)
 
     signal C : std_logic_vector (P - N - 1 downto 0);  -- control bus
-    signal data_bus : WORD;
-    
+
+    signal data_in : WORD;  -- data bus input
+    signal data_out : WORD;  -- data bus output
+
     signal ins_reg_en : std_logic;  -- instruction register enable
 
     signal ptr_inc : WORD;  -- pointer incrementer output
@@ -127,7 +115,7 @@ architecture behavior of test_auto is
 
     signal ins_addr : WORD;
     signal dat_addr : WORD;
-    signal addr_bus : WORD;
+    signal addr_out : WORD;
 
     signal addr_sel : std_logic;  -- select address source
 
@@ -135,16 +123,16 @@ architecture behavior of test_auto is
 
     signal alu_left : WORD;   -- ALU left value
     signal alu_right : WORD;  -- ALU right value
+    
+    signal alu_sel : std_logic;  -- ALU operation select
 
 begin
 
     reg_ins: reg_flip_flop
         generic map (N => N)
-        port map (I => data_bus, O => ins_index, E => ins_reg_en, R => R, CK => CK);
-    
-    mux_index: mux_2
-        generic map (N => N)
-        port map (I0 => step_index, I1 => ins_index, O => next_index, S => index_sel);
+        port map (I => data_in, O => ins_index, E => ins_reg_en, R => R, CK => CK);
+
+    next_index <= ins_index when index_sel = '1' else step_index;
 
     reg_index: reg_flip_flop
         generic map (N => N)
@@ -155,6 +143,7 @@ begin
     step_index <= step_cur (N-1 downto 0);
 
     C <= step_cur (P-1 downto N);
+
     ins_reg_en <= C (0);
     index_sel  <= C (1);
     ins_ptr_en <= C (2);
@@ -162,6 +151,7 @@ begin
     acc_en     <= C (4);
     addr_sel   <= C (5);
     dat_ptr_en <= C (6);
+    alu_sel    <= C (7);
 
     ins_ptr: reg_flip_flop
         generic map (N => N)
@@ -171,21 +161,21 @@ begin
         generic map (N => N)
         port map (I => ptr_next, O => dat_addr, E => dat_ptr_en, R => R, CK => CK);
 
-    mux_addr: mux_2
-        generic map (N => N)
-        port map (I0 => ins_addr, I1 => dat_addr, O => addr_bus, S => addr_sel);
+    addr_out <= dat_addr when addr_sel = '1' else ins_addr;
 
-    ptr_inc <= std_logic_vector (to_unsigned (to_integer (unsigned (addr_bus)) + 1, N)) when addr_bus /= "1111" else "0000";
+    data_in <= ram_prog_0 (to_integer (unsigned (addr_out)));
 
-    data_bus <= rom_prog_0 (to_integer (unsigned (addr_bus)));
+    ptr_inc <= std_logic_vector (to_unsigned (to_integer (unsigned (addr_out)) + 1, N)) when addr_out /= "1111" else "0000";
 
-    mux_ptr: mux_2
-        generic map (N => N)
-        port map (I0 => ptr_inc, I1 => data_bus, O => ptr_next, S => ptr_sel);
+    ptr_next <= data_in when ptr_sel = '1' else ptr_inc;
 
     reg_acc: reg_flip_flop
         generic map (N => N)
-        port map (I => data_bus, O => alu_left, E => acc_en, R => R, CK => CK);
+        port map (I => data_out, O => alu_left, E => acc_en, R => R, CK => CK);
+
+    alu_right <= data_in;
+
+    data_out <= alu_left when alu_sel = '1' else alu_right;
 
     clock_1: process
     begin
