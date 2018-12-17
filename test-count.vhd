@@ -42,7 +42,7 @@ begin
     begin
         CK <= '0';
         wait for 1 ns;
-        CK <= '1';
+        CK <= '1' nand R;
         wait for 1 ns;
     end process;
 

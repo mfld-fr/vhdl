@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 
 entity reg_flip_flop is
 
-    generic (N : natural);
+    generic (N : positive);
 
     port (
         I : in std_logic_vector (N-1 downto 0);

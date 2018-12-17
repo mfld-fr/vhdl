@@ -22,14 +22,14 @@ architecture behavior of test_auto is
 
     type ROM_STEP is array (0 to 2**N - 1) of STEP;
 
-    --   X            ALU operation select
-    --    X           data pointer enable
+    --   X            ALU operation select (0: right, 1: left)
+    --    X           DP register input enable
     --     X          address source select (0: instruction pointer, 1: data pointer)
-    --      X         accumulator enable
-    --       X        next address select (0: increment address, 1: data bus)
-    --        X       instruction pointer enable
+    --      X         accumulator input enable
+    --       X        IP next value select (0: incremented address, 1: data input)
+    --        X       IP register input enable
     --         X      next index select (0: step, 1: instruction register)
-    --          X     instruction register enable
+    --          X     instruction register input enable
 
     constant rom_step_0: ROM_STEP := (
         "000001010001",  -- 0h  load IR & increment IP
@@ -37,8 +37,8 @@ architecture behavior of test_auto is
         "000000000000",  -- 2h
         "000000000000",  -- 3h
         "000101000000",  -- 4h  LD A,immediate
-        "010010000110",  -- 5h  LD DP,immediate (1/2)
-        "000001000000",  -- 6h  increment IP (2/2)
+        "010001000000",  -- 5h  LD DP,immediate
+        "000000000000",  -- 6h
         "000000000000",  -- 7h
         "001100000000",  -- 8h  LD A,(DP)
         "000000000000",  -- 9h  TODO: ST (DP),A
@@ -106,15 +106,16 @@ architecture behavior of test_auto is
 
     signal ins_reg_en : std_logic;  -- instruction register enable
 
-    signal ptr_inc : WORD;  -- pointer incrementer output
-    signal ptr_next : WORD;  -- pointer next value
+    signal addr_next : WORD;  -- address next value (incremented)
 
-    signal ptr_sel : std_logic; -- pointer next value select
-    signal ins_ptr_en : std_logic;  -- instruction pointer enable
-    signal dat_ptr_en : std_logic;  -- data pointer enable
+    signal ip_next : WORD;     -- instruction pointer next value
+    signal ip_val : WORD;     -- instruction pointer current value
+    signal ip_sel : std_logic; -- instruction pointer next value select
+    signal ip_en : std_logic;  -- instruction pointer input enable
 
-    signal ins_addr : WORD;
-    signal dat_addr : WORD;
+    signal dp_val : WORD;  -- data pointer value
+    signal dp_en : std_logic;  -- data pointer input enable
+
     signal addr_out : WORD;
 
     signal addr_sel : std_logic;  -- select address source
@@ -146,28 +147,28 @@ begin
 
     ins_reg_en <= C (0);
     index_sel  <= C (1);
-    ins_ptr_en <= C (2);
-    ptr_sel    <= C (3);
+    ip_en      <= C (2);
+    ip_sel     <= C (3);
     acc_en     <= C (4);
     addr_sel   <= C (5);
-    dat_ptr_en <= C (6);
+    dp_en      <= C (6);
     alu_sel    <= C (7);
 
-    ins_ptr: reg_flip_flop
-        generic map (N => N)
-        port map (I => ptr_next, O => ins_addr, E => ins_ptr_en, R => R, CK => CK);
+    ip_next <= data_in when ip_sel = '1' else addr_next;
 
-    dat_ptr: reg_flip_flop
+    ip_reg: reg_flip_flop
         generic map (N => N)
-        port map (I => ptr_next, O => dat_addr, E => dat_ptr_en, R => R, CK => CK);
+        port map (I => ip_next, O => ip_val, E => ip_en, R => R, CK => CK);
 
-    addr_out <= dat_addr when addr_sel = '1' else ins_addr;
+    dp_reg: reg_flip_flop
+        generic map (N => N)
+        port map (I => data_in, O => dp_val, E => dp_en, R => R, CK => CK);
+
+    addr_out <= dp_val when addr_sel = '1' else ip_val;
+
+    addr_next <= std_logic_vector (unsigned (addr_out) + to_unsigned (1, N));
 
     data_in <= ram_prog_0 (to_integer (unsigned (addr_out)));
-
-    ptr_inc <= std_logic_vector (to_unsigned (to_integer (unsigned (addr_out)) + 1, N)) when addr_out /= "1111" else "0000";
-
-    ptr_next <= data_in when ptr_sel = '1' else ptr_inc;
 
     reg_acc: reg_flip_flop
         generic map (N => N)
@@ -180,7 +181,7 @@ begin
     clock_1: process
     begin
         wait for 1 ns;
-        CK <= '1' and not R;
+        CK <= '1' nand R;
         wait for 1 ns;
         CK <= '0';
     end process;
