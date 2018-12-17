@@ -10,7 +10,8 @@ end test_reg;
 
 architecture behavior of test_reg is
 
-    component reg_flip_flop is
+--  component reg_flip_flop is
+    component reg_proc is
 
         generic (N : positive);
     
@@ -35,7 +36,8 @@ architecture behavior of test_reg is
 
 begin
 
-    reg_0: reg_flip_flop
+--  reg_0: reg_flip_flop
+    reg_0: reg_proc
         generic map (N => N)
         port map (I => I, O => O, E => E, R => R, CK => CK);
     
@@ -43,7 +45,7 @@ begin
     begin
         CK <= '0';
         wait for 1 ns;
-        CK <= '1';
+        CK <= '1' nand R;
         wait for 1 ns;
     end process;
 
