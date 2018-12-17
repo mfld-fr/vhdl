@@ -7,7 +7,7 @@ entity test_auto is
 
     generic (
         N : positive := 4;
-        P : positive := 12
+        P : positive := 13
         );
 
 end test_auto;
@@ -22,32 +22,33 @@ architecture behavior of test_auto is
 
     type ROM_STEP is array (0 to 2**N - 1) of STEP;
 
-    --   X            ALU operation select (0: right, 1: left)
-    --    X           DP register input enable
-    --     X          address source select (0: instruction pointer, 1: data pointer)
-    --      X         accumulator input enable
-    --       X        IP next value select (0: incremented address, 1: data input)
-    --        X       IP register input enable
-    --         X      next index select (0: step, 1: instruction register)
-    --          X     instruction register input enable
+    --   X             data write enable
+    --    X            ALU operation select (0: right, 1: left)
+    --     X           DP register input enable
+    --      X          address source select (0: instruction pointer, 1: data pointer)
+    --       X         accumulator input enable
+    --        X        IP next value select (0: incremented address, 1: data input)
+    --         X       IP register input enable
+    --          X      next index select (0: step, 1: instruction register)
+    --           X     instruction register input enable
 
     constant rom_step_0: ROM_STEP := (
-        "000001010001",  -- 0h  load IR & increment IP
-        "000000100000",  -- 1h  decode instruction
-        "000000000000",  -- 2h
-        "000000000000",  -- 3h
-        "000101000000",  -- 4h  LD A,immediate
-        "010001000000",  -- 5h  LD DP,immediate
-        "000000000000",  -- 6h
-        "000000000000",  -- 7h
-        "001100000000",  -- 8h  LD A,(DP)
-        "000000000000",  -- 9h  TODO: ST (DP),A
-        "000000000000",  -- Ah
-        "000000000000",  -- Bh
-        "000011000000",  -- Ch  JMP immediate
-        "000000000000",  -- Dh
-        "000000000000",  -- Eh
-        "000000000000"   -- Fh  NOP
+        "0000001010001",  -- 0h  load IR & increment IP
+        "0000000100000",  -- 1h  decode instruction
+        "0000000000000",  -- 2h
+        "0000000000000",  -- 3h
+        "0000101000000",  -- 4h  LD A,immediate
+        "0010001000000",  -- 5h  LD DP,immediate
+        "0000000000000",  -- 6h
+        "0000000000000",  -- 7h
+        "0001100000000",  -- 8h  LD A,(DP)
+        "1101000000000",  -- 9h  ST (DP),A
+        "0000000000000",  -- Ah
+        "0000000000000",  -- Bh
+        "0000011000000",  -- Ch  JMP immediate
+        "0000000000000",  -- Dh
+        "0000000000000",  -- Eh
+        "0000000000000"   -- Fh  NOP
         );
 
     type RAM_PROG is array (0 to 2**N - 1) of WORD;
@@ -60,15 +61,15 @@ architecture behavior of test_auto is
         "1000",  -- 4h  LD A,(DP)
         "0101",  -- 5h  LD DP,...
         "1111",  -- 6h  ...Fh
-        "1000",  -- 7h  LD A,(DP)
-        "1111",  -- 8h  NOP
-        "1100",  -- 9h  JMP...
-        "0000",  -- Ah  ...0h
-        "0000",  -- Bh
-        "0000",  -- Ch
+        "1001",  -- 7h  ST A,(DP)
+        "0100",  -- 8h  LD A,...
+        "0010",  -- 9h  ...2h
+        "1000",  -- Ah  LD A,(DP)
+        "1100",  -- Bh  JMP...
+        "0000",  -- Ch  ...0h
         "0000",  -- Dh
-        "0010",  -- Eh  DB 2h
-        "0011"   -- Fh  DB 3h
+        "0011",  -- Eh  DB 3h
+        "0000"   -- Fh  DB 0h
         );
         
     component reg_flip_flop is
@@ -103,6 +104,8 @@ architecture behavior of test_auto is
 
     signal data_in : WORD;  -- data bus input
     signal data_out : WORD;  -- data bus output
+    signal rd_en : std_logic;  -- read enable
+    signal wr_en : std_logic;  -- write enable
 
     signal ins_reg_en : std_logic;  -- instruction register enable
 
@@ -153,6 +156,7 @@ begin
     addr_sel   <= C (5);
     dp_en      <= C (6);
     alu_sel    <= C (7);
+    wr_en      <= C (8);
 
     ip_next <= data_in when ip_sel = '1' else addr_next;
 
@@ -177,6 +181,8 @@ begin
     alu_right <= data_in;
 
     data_out <= alu_left when alu_sel = '1' else alu_right;
+
+    ram_prog_0 (to_integer (unsigned (addr_out))) <= data_out when wr_en = '1';
 
     clock_1: process
     begin
