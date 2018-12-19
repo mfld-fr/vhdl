@@ -3,6 +3,7 @@ use ieee.std_logic_1164.all;
 
 
 entity test_reg is
+
     generic (N : positive := 4);
 
 end test_reg;
@@ -11,7 +12,7 @@ end test_reg;
 architecture behavior of test_reg is
 
 --  component reg_flip_flop is
-    component reg_proc is
+    component reg_logic is
 
         generic (N : positive);
     
@@ -27,17 +28,18 @@ architecture behavior of test_reg is
 
     end component;
 
-    signal CK : std_logic := '0';
     signal R : std_logic := '1';
+    signal CK : std_logic;
+
     signal E : std_logic := '0';
     
-    signal I : std_logic_vector (N-1 downto 0);
+    signal I : std_logic_vector (N-1 downto 0) := "0000";
     signal O : std_logic_vector (N-1 downto 0);
 
 begin
 
 --  reg_0: reg_flip_flop
-    reg_0: reg_proc
+    reg_0: reg_logic
         generic map (N => N)
         port map (I => I, O => O, E => E, R => R, CK => CK);
     

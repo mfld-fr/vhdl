@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 
-entity reg_proc is
+entity reg_logic is
 
     generic (N : positive);
 
@@ -16,21 +16,13 @@ entity reg_proc is
         CK : in std_logic  -- clock
         );
 
-end entity reg_proc;
+end entity;
 
 
-architecture behavior of reg_proc is
+architecture behavior of reg_logic is
 
 begin
 
-    process (I, E, R, CK)
-    begin
-        if R = '1'
-            then O <= (O'range => '0');
-        elsif E = '1' and rising_edge (CK)
-            then O <= I;
-        end if;
-   
-    end process;
+    O <= (I'range => '0') when R = '1' else I when E = '1' and rising_edge (CK);
 
-end architecture behavior;
+end architecture;

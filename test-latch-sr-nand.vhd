@@ -1,17 +1,20 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity test_latch_sr_nand is
-end test_latch_sr_nand;
 
-architecture sequence of test_latch_sr_nand is
+entity test_latch_sr_nand is
+end entity test_latch_sr_nand;
+
+
+architecture behavior of test_latch_sr_nand is
 
     component latch_sr_nand is
 	    port (
 	    S : in std_logic;
 	    R : in std_logic;
-	    Q0 : inout std_logic;
-	    Q1 : inout std_logic
+
+	    Q : inout std_logic;
+	    NQ : inout std_logic
 	    );
 
     end component;
@@ -22,7 +25,7 @@ architecture sequence of test_latch_sr_nand is
 
 begin
 
-    latch_1: latch_sr_nand port map (S => S, R => R, Q0 => O);
+    latch_1: latch_sr_nand port map (S => S, R => R, Q => O);
 
     process
         begin
@@ -36,4 +39,4 @@ begin
         R <= '1';
       end process;
 
-end sequence;
+end architecture behavior;

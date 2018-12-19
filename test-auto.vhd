@@ -10,7 +10,7 @@ entity test_auto is
         P : positive := 13
         );
 
-end test_auto;
+end entity;
 
 
 architecture behavior of test_auto is
@@ -33,8 +33,8 @@ architecture behavior of test_auto is
     --           X     instruction register input enable
 
     constant rom_step_0: ROM_STEP := (
-        "0000001010001",  -- 0h  load IR & increment IP
-        "0000000100000",  -- 1h  decode instruction
+        "0000001110000",  -- 0h  load IR & increment IP / decode instruction
+        "0000000000000",  -- 1h
         "0000000000000",  -- 2h
         "0000000000000",  -- 3h
         "0000101000000",  -- 4h  LD A,immediate
@@ -51,9 +51,9 @@ architecture behavior of test_auto is
         "0000000000000"   -- Fh  NOP
         );
 
-    type RAM_PROG is array (0 to 2**N - 1) of WORD;
+    type MEMORY is array (0 to 2**N - 1) of WORD;
 
-    signal ram_prog_0: RAM_PROG := (
+    signal mem_0: MEMORY := (
         "0100",  -- 0h  LD A,...
         "0001",  -- 1h  ...1h
         "0101",  -- 2h  LD DP,...
@@ -72,7 +72,7 @@ architecture behavior of test_auto is
         "0000"   -- Fh  DB 0h
         );
         
-    component reg_flip_flop is
+    component reg_logic is
 
         generic (N : positive);
     
@@ -89,6 +89,8 @@ architecture behavior of test_auto is
     end component;
 
     signal CK : std_logic := '0';
+    signal NCK : std_logic := '1';
+
     signal R : std_logic := '1';
     
     signal step_cur : STEP;
@@ -104,7 +106,7 @@ architecture behavior of test_auto is
 
     signal data_in : WORD;  -- data bus input
     signal data_out : WORD;  -- data bus output
-    signal rd_en : std_logic;  -- read enable
+    signal rd_en : std_logic := '1';  -- read enable
     signal wr_en : std_logic;  -- write enable
 
     signal ins_reg_en : std_logic;  -- instruction register enable
@@ -132,15 +134,17 @@ architecture behavior of test_auto is
 
 begin
 
-    reg_ins: reg_flip_flop
+    NCK <= not CK;
+
+    ins_reg: reg_logic
         generic map (N => N)
         port map (I => data_in, O => ins_index, E => ins_reg_en, R => R, CK => CK);
 
     next_index <= ins_index when index_sel = '1' else step_index;
 
-    reg_index: reg_flip_flop
+    index_reg: reg_logic
         generic map (N => N)
-        port map (I => next_index, O => cur_index, E => '1', R => R, CK => CK);
+        port map (I => next_index, O => cur_index, E => '1', R => R, CK => NCK);
 
     step_cur <= rom_step_0 (to_integer (unsigned (cur_index)));
 
@@ -160,11 +164,11 @@ begin
 
     ip_next <= data_in when ip_sel = '1' else addr_next;
 
-    ip_reg: reg_flip_flop
+    ip_reg: reg_logic
         generic map (N => N)
         port map (I => ip_next, O => ip_val, E => ip_en, R => R, CK => CK);
 
-    dp_reg: reg_flip_flop
+    dp_reg: reg_logic
         generic map (N => N)
         port map (I => data_in, O => dp_val, E => dp_en, R => R, CK => CK);
 
@@ -172,9 +176,9 @@ begin
 
     addr_next <= std_logic_vector (unsigned (addr_out) + to_unsigned (1, N));
 
-    data_in <= ram_prog_0 (to_integer (unsigned (addr_out)));
+    data_in <= mem_0 (to_integer (unsigned (addr_out))) when rd_en = '1';
 
-    reg_acc: reg_flip_flop
+    acc_reg: reg_logic
         generic map (N => N)
         port map (I => data_out, O => alu_left, E => acc_en, R => R, CK => CK);
 
@@ -182,7 +186,7 @@ begin
 
     data_out <= alu_left when alu_sel = '1' else alu_right;
 
-    ram_prog_0 (to_integer (unsigned (addr_out))) <= data_out when wr_en = '1';
+    mem_0 (to_integer (unsigned (addr_out))) <= data_out when wr_en = '1' and rising_edge (CK);
 
     clock_1: process
     begin
@@ -192,7 +196,7 @@ begin
         CK <= '0';
     end process;
 
-    test_1: process
+    reset_1: process
     begin
         wait for 10 ns;
         R <= '0';
@@ -200,4 +204,4 @@ begin
         R <= '1';
     end process;
 
-end behavior;
+end architecture;
