@@ -6,8 +6,9 @@ use ieee.numeric_std.all;
 entity test_auto is
 
     generic (
-        N : positive := 4;
-        P : positive := 14
+        N : positive := 4;  -- word width
+        M : positive := 4;  -- index width
+        P : positive := 15  -- step width
         );
 
 end entity;
@@ -17,62 +18,83 @@ architecture behavior of test_auto is
 
     subtype WORD is std_logic_vector (N-1 downto 0);
 
-    subtype INDEX is std_logic_vector (N-1 downto 0);
-    subtype STEP is std_logic_vector (P-1 downto 0);
-
-    type ROM_STEP is array (0 to 2**N - 1) of STEP;
-
-    --   9876543210
-    --   X             data write enable
-    --    XX            ALU operation select (00: right, 01: left, 10: add, 11: sub)
-    --      X           DP register input enable
-    --       X          address source select (0: instruction pointer, 1: data pointer)
-    --        X         accumulator input enable
-    --         X        IP next value select (0: incremented address, 1: data input)
-    --          X       IP register input enable
-    --           X      next index select (0: step, 1: instruction register)
-    --            X     instruction register input enable
-
-    constant rom_step_0: ROM_STEP := (
-        "00000001110000",  -- 0h  load IR & increment IP / decode instruction
-        "00000000000000",  -- 1h
-        "00000000000000",  -- 2h
-        "00000000000000",  -- 3h
-        "00000101000000",  -- 4h  LD A,immediate
-        "00010001000000",  -- 5h  LD DP,immediate
-        "00000000000000",  -- 6h
-        "00000000000000",  -- 7h
-        "00001100000000",  -- 8h  LD A,(DP)
-        "10101000000000",  -- 9h  ST A,(DP)
-        "00000000000000",  -- Ah
-        "00000000000000",  -- Bh
-        "00000011000000",  -- Ch  JMP immediate
-        "00000000000000",  -- Dh
-        "01000101000000",  -- Eh  ADD A,immediate
-        "01100101000000"   -- Fh  SUB A,immediate
-        );
-
     type MEMORY is array (0 to 2**N - 1) of WORD;
 
     signal mem_0: MEMORY := (
-        "0100",  -- 0h  LD A,...
-        "0000",  -- 1h  ...0h
-        "0101",  -- 2h  LD DP,...
-        "1111",  -- 3h  ...Fh
-        "1001",  -- 4h  ST A,(DP)
-        "0101",  -- 5h  LD DP,...
-        "1111",  -- 6h  ...Fh
-        "1000",  -- 7h  LD A,(DP)
-        "1110",  -- 8h  ADD A,...
-        "0001",  -- 9h  ...1h
-        "1001",  -- Ah  ST A,(DP)
-        "1100",  -- Bh  JMP...
-        "0101",  -- Ch  ...5h
+        "0010",  -- 0h  LD A,...
+        "1000",  -- 1h  ...8h
+        "0111",  -- 2h  ST A,...
+        "1111",  -- 3h  ...(Fh)
+        "0011",  -- 4h  LD DP,...
+        "1111",  -- 5h  ...Fh
+        "0100",  -- 6h  LD A,(DP)
+        "1110",  -- 7h  ADD A,...
+        "0001",  -- 8h  ...1h
+        "0101",  -- 9h  ST A,(DP)
+        "1100",  -- Ah  JMP...
+        "0100",  -- Bh  ...4h
+        "0000",  -- Ch
         "0000",  -- Dh
         "0000",  -- Eh
         "0000"   -- Fh  DW 0h
         );
         
+    subtype INDEX is std_logic_vector (M-1 downto 0);
+    type ROM_INDEX is array (0 to 2**N - 1) of INDEX;
+
+    constant rom_index_0: ROM_INDEX := (
+        "0000",  -- 0h -> 0h NOP
+        "0000",  -- 1h -> 0h NOP
+        "0010",  -- 2h -> 2h LD A,imm
+        "0011",  -- 3h -> 3h LD DP,imm
+        "0100",  -- 4h -> 4h LD A,(DP)
+        "0101",  -- 5h -> 5h ST A,(DP)
+        "0110",  -- 6h -> 6h LD A,(addr)
+        "1000",  -- 7h -> 8h ST A,(addr)
+        "0000",  -- 8h -> 0h NOP
+        "0000",  -- 9h -> 0h NOP
+        "0000",  -- Ah -> 0h NOP
+        "0000",  -- Bh -> 0h NOP
+        "1100",  -- Ch -> Ch JMP imm
+        "0000",  -- Dh -> 0h NOP
+        "1110",  -- Eh -> Eh ADD A,imm
+        "1111"   -- Fh -> Fh SUB A,imm
+        );
+
+    subtype STEP is std_logic_vector (P-1 downto 0);
+    type ROM_STEP is array (0 to 2**M - 1) of STEP;
+
+    --   A9876543210
+    --   X               data read enable
+    --    X              data write enable
+    --     XX            ALU operation select (00: right, 01: left, 10: add, 11: sub)
+    --       X           DP register input enable
+    --        X          address source select (0: instruction pointer, 1: data pointer)
+    --         X         accumulator input enable
+    --          X        IP next value select (0: incremented address, 1: data input)
+    --           X       IP register input enable
+    --            X      next index select (0: step, 1: instruction register)
+    --             X     instruction register input enable
+
+    constant rom_step_0: ROM_STEP := (
+        "100000001110000",  -- 0h  load IR & increment IP / decode instruction
+        "000000000000000",  -- 1h
+        "100000101000000",  -- 2h  LD A,imm
+        "100010001000000",  -- 3h  LD DP,imm
+        "100001100000000",  -- 4h  LD A,(DP)
+        "010101000000000",  -- 5h  ST A,(DP)
+        "100010001000111",  -- 6h  LD A,(addr) = LD DP,addr...
+        "100001100000000",  -- 7h  ...LD A,(DP)
+        "100010001001001",  -- 8h  ST A,(addr) = LD DP,addr...
+        "010101000000000",  -- 9h  ...ST A,(DP)
+        "000000000000000",  -- Ah
+        "000000000000000",  -- Bh
+        "100000011000000",  -- Ch  JMP imm
+        "000000000000000",  -- Dh
+        "101000101000000",  -- Eh  ADD A,imm
+        "101100101000000"   -- Fh  SUB A,imm
+        );
+
     component reg_logic is
 
         generic (N : positive);
@@ -94,19 +116,22 @@ architecture behavior of test_auto is
 
     signal R : std_logic := '1';
     
+    signal ins_val : WORD;
+
     signal index_cur : INDEX;  -- current from index register
-    signal index_ins : INDEX;  -- index from instruction register
+    signal index_ins : INDEX;  -- index from ROM_INDEX
     signal index_step : INDEX;  -- index from automaton step
     signal index_next : INDEX;  -- next index after selection
     
     signal index_sel : std_logic;  -- select index source (step or instruction register)
 
-    signal step_cur : STEP;
+    signal step_cur : STEP;  -- step from ROM_STEP
 
     signal C : std_logic_vector (P - N - 1 downto 0);  -- control bus
 
     signal data_in : WORD;  -- data bus input
     signal data_out : WORD;  -- data bus output
+    signal rd_en : std_logic;  -- read enable
     signal wr_en : std_logic;  -- write enable
 
     signal ir_en : std_logic;  -- instruction register enable
@@ -137,7 +162,9 @@ begin
 
     ins_reg: reg_logic
         generic map (N => N)
-        port map (I => data_in, O => index_ins, E => ir_en, R => R, CK => CK);
+        port map (I => data_in, O => ins_val, E => ir_en, R => R, CK => CK);
+
+    index_ins <= rom_index_0 (to_integer (unsigned (ins_val)));
 
     index_next <= index_ins when index_sel = '1' else index_step;
 
@@ -160,6 +187,7 @@ begin
     dp_en      <= C (6);
     alu_sel    <= C (8 downto 7);
     wr_en      <= C (9);
+    rd_en      <= C (10);
 
     ip_next <= data_in when ip_sel = '1' else addr_next;
 
