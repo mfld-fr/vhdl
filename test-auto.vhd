@@ -6,7 +6,7 @@ use ieee.numeric_std.all;
 entity test_auto is
 
     generic (
-        N : positive := 4;  -- word width
+        N : positive := 5;  -- word width
         M : positive := 5;  -- index width
         P : positive := 16  -- step width
         );
@@ -21,44 +21,76 @@ architecture behavior of test_auto is
     type MEMORY is array (0 to 2**N - 1) of WORD;
 
     signal mem_0: MEMORY := (
-        "0010",  -- 0h  LD A,...
-        "1000",  -- 1h  ...8h
-        "0111",  -- 2h  ST A,...
-        "1111",  -- 3h  ...(Fh)
-        "0011",  -- 4h  LD DP,...
-        "1110",  -- 5h  ...Eh
-        "1000",  -- 6h  LD DP,(DP)
-        "0100",  -- 7h  LD A,(DP)
-        "1110",  -- 8h  ADD A,...
-        "0001",  -- 9h  ...1h
-        "0101",  -- Ah  ST A,(DP)
-        "1100",  -- Bh  JMP...
-        "0100",  -- Ch  ...4h
-        "0000",  -- Dh
-        "1111",  -- Eh  DW Fh
-        "0000"   -- Fh  DW 0h
+        "00110",  -- 00h  LD A,(stack pointer)
+        "11111",  -- 01h
+        "01111",  -- 02h  SUB A,1h
+        "00001",  -- 03h
+        "00101",  -- 04h  ST A,(DP)
+        "10010",  -- 05h  MV DP,A
+        "00100",  -- 06h  LD A,(DP)
+        "01110",  -- 07h  ADD A,...
+        "00001",  -- 08h  ...1h
+        "00101",  -- 09h  ST A,(DP)
+        "01100",  -- 0Ah  JMP...
+        "00100",  -- 0Bh  ...4h
+        "00000",  -- 0Ch
+        "00000",  -- 0Dh
+        "01111",  -- 0Eh  DW Fh
+        "00000",  -- 0Fh  DW 0h
+        "00000",  -- 10h
+        "00000",  -- 11h
+        "00000",  -- 12h
+        "00000",  -- 13h
+        "00000",  -- 14h
+        "00000",  -- 15h
+        "00000",  -- 16h
+        "00000",  -- 17h
+        "00000",  -- 18h
+        "00000",  -- 19h
+        "00000",  -- 1Ah
+        "00000",  -- 1Bh
+        "00000",  -- 1Ch
+        "00000",  -- 1Dh  DW 0h (stack)
+        "00000",  -- 1Eh  DW 0h (return address)
+        "11110"   -- 1Fh  DW 1Eh (stack pointer)
         );
         
     subtype INDEX is std_logic_vector (M-1 downto 0);
     type ROM_INDEX is array (0 to 2**N - 1) of INDEX;
 
     constant rom_index_0: ROM_INDEX := (
-        "00000",  -- 0h -> 00h NOP
-        "00000",  -- 1h -> 00h NOP
-        "00010",  -- 2h -> 02h LD A,imm
-        "00011",  -- 3h -> 03h LD DP,imm
-        "00100",  -- 4h -> 04h LD A,(DP)
-        "00101",  -- 5h -> 05h ST A,(DP)
-        "00110",  -- 6h -> 06h LD A,(addr)
-        "01000",  -- 7h -> 08h ST A,(addr)
-        "01010",  -- 8h -> 0Ah LD DP,(DP)
-        "00000",  -- 9h -> 00h NOP
-        "00000",  -- Ah -> 00h NOP
-        "00000",  -- Bh -> 00h NOP
-        "01100",  -- Ch -> 0Ch JMP imm
-        "00000",  -- Dh -> 00h NOP
-        "01110",  -- Eh -> 0Eh ADD A,imm
-        "01111"   -- Fh -> 0Fh SUB A,imm
+        "00000",  -- 00h -> 00h  NOP
+        "00000",  -- 01h -> 00h  NOP
+        "00010",  -- 02h -> 02h  LD A,imm
+        "00011",  -- 03h -> 03h  LD DP,imm
+        "00100",  -- 04h -> 04h  LD A,(DP)
+        "00101",  -- 05h -> 05h  ST A,(DP)
+        "00110",  -- 06h -> 06h  LD A,(addr)
+        "01000",  -- 07h -> 08h  ST A,(addr)
+        "01010",  -- 08h -> 0Ah  LD DP,(DP)
+        "01011",  -- 09h -> 0Bh  LD DP,(addr)
+        "00000",  -- 0Ah -> 00h  NOP
+        "00000",  -- 0Bh -> 00h  NOP
+        "01100",  -- 0Ch -> 0Ch  JMP imm
+        "00000",  -- 0Dh -> 00h  NOP
+        "01110",  -- 0Eh -> 0Eh  ADD A,imm
+        "01111",  -- 0Fh -> 0Fh  SUB A,imm
+        "00000",  -- 10h -> 00h  NOP
+        "00000",  -- 11h -> 00h  NOP
+        "10010",  -- 12h -> 12h  MV DP,A
+        "10011",  -- 13h -> 13h  MV IP,A
+        "00000",  -- 14h -> 00h  NOP
+        "00000",  -- 15h -> 00h  NOP
+        "00000",  -- 16h -> 00h  NOP
+        "00000",  -- 17h -> 00h  NOP
+        "00000",  -- 18h -> 00h  NOP
+        "00000",  -- 19h -> 00h  NOP
+        "00000",  -- 1Ah -> 00h  NOP
+        "00000",  -- 1Bh -> 00h  NOP
+        "00000",  -- 1Ch -> 00h  NOP
+        "00000",  -- 1Dh -> 00h  NOP
+        "00000",  -- 1Eh -> 00h  NOP
+        "00000"   -- 1Fh -> 00h  NOP
         );
 
     subtype STEP is std_logic_vector (P-1 downto 0);
@@ -88,15 +120,15 @@ architecture behavior of test_auto is
         "1000100010000101",  -- 08h  ST A,(addr) = LD DP,addr / ST A,(DP)
         "0000000000000000",  -- 09h
         "1000110000000000",  -- 0Ah  LD DP,(DP)
-        "0000000000000000",  -- 0Bh
+        "1000100010001010",  -- 0Bh  LD DP,(addr) = LD DP,addr / LD DP,(DP)
         "1000000110000000",  -- 0Ch  JMP imm
         "0000000000000000",  -- 0Dh
         "1010001010000000",  -- 0Eh  ADD A,imm
         "1011001010000000",  -- 0Fh  SUB A,imm
         "0000000000000000",  -- 10h
         "0000000000000000",  -- 11h
-        "0000000000000000",  -- 12h
-        "0000000000000000",  -- 13h
+        "0001100000000000",  -- 12h  MV DP,A
+        "0001000010000000",  -- 13h  MV IP,A
         "0000000000000000",  -- 14h
         "0000000000000000",  -- 15h
         "0000000000000000",  -- 16h
