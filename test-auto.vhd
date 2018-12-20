@@ -7,8 +7,8 @@ entity test_auto is
 
     generic (
         N : positive := 4;  -- word width
-        M : positive := 4;  -- index width
-        P : positive := 15  -- step width
+        M : positive := 5;  -- index width
+        P : positive := 16  -- step width
         );
 
 end entity;
@@ -26,16 +26,16 @@ architecture behavior of test_auto is
         "0111",  -- 2h  ST A,...
         "1111",  -- 3h  ...(Fh)
         "0011",  -- 4h  LD DP,...
-        "1111",  -- 5h  ...Fh
-        "0100",  -- 6h  LD A,(DP)
-        "1110",  -- 7h  ADD A,...
-        "0001",  -- 8h  ...1h
-        "0101",  -- 9h  ST A,(DP)
-        "1100",  -- Ah  JMP...
-        "0100",  -- Bh  ...4h
-        "0000",  -- Ch
+        "1110",  -- 5h  ...Eh
+        "1000",  -- 6h  LD DP,(DP)
+        "0100",  -- 7h  LD A,(DP)
+        "1110",  -- 8h  ADD A,...
+        "0001",  -- 9h  ...1h
+        "0101",  -- Ah  ST A,(DP)
+        "1100",  -- Bh  JMP...
+        "0100",  -- Ch  ...4h
         "0000",  -- Dh
-        "0000",  -- Eh
+        "1111",  -- Eh  DW Fh
         "0000"   -- Fh  DW 0h
         );
         
@@ -43,22 +43,22 @@ architecture behavior of test_auto is
     type ROM_INDEX is array (0 to 2**N - 1) of INDEX;
 
     constant rom_index_0: ROM_INDEX := (
-        "0000",  -- 0h -> 0h NOP
-        "0000",  -- 1h -> 0h NOP
-        "0010",  -- 2h -> 2h LD A,imm
-        "0011",  -- 3h -> 3h LD DP,imm
-        "0100",  -- 4h -> 4h LD A,(DP)
-        "0101",  -- 5h -> 5h ST A,(DP)
-        "0110",  -- 6h -> 6h LD A,(addr)
-        "1000",  -- 7h -> 8h ST A,(addr)
-        "0000",  -- 8h -> 0h NOP
-        "0000",  -- 9h -> 0h NOP
-        "0000",  -- Ah -> 0h NOP
-        "0000",  -- Bh -> 0h NOP
-        "1100",  -- Ch -> Ch JMP imm
-        "0000",  -- Dh -> 0h NOP
-        "1110",  -- Eh -> Eh ADD A,imm
-        "1111"   -- Fh -> Fh SUB A,imm
+        "00000",  -- 0h -> 00h NOP
+        "00000",  -- 1h -> 00h NOP
+        "00010",  -- 2h -> 02h LD A,imm
+        "00011",  -- 3h -> 03h LD DP,imm
+        "00100",  -- 4h -> 04h LD A,(DP)
+        "00101",  -- 5h -> 05h ST A,(DP)
+        "00110",  -- 6h -> 06h LD A,(addr)
+        "01000",  -- 7h -> 08h ST A,(addr)
+        "01010",  -- 8h -> 0Ah LD DP,(DP)
+        "00000",  -- 9h -> 00h NOP
+        "00000",  -- Ah -> 00h NOP
+        "00000",  -- Bh -> 00h NOP
+        "01100",  -- Ch -> 0Ch JMP imm
+        "00000",  -- Dh -> 00h NOP
+        "01110",  -- Eh -> 0Eh ADD A,imm
+        "01111"   -- Fh -> 0Fh SUB A,imm
         );
 
     subtype STEP is std_logic_vector (P-1 downto 0);
@@ -77,22 +77,38 @@ architecture behavior of test_auto is
     --             X     instruction register input enable
 
     constant rom_step_0: ROM_STEP := (
-        "100000001110000",  -- 0h  load IR & increment IP / decode instruction
-        "000000000000000",  -- 1h
-        "100000101000000",  -- 2h  LD A,imm
-        "100010001000000",  -- 3h  LD DP,imm
-        "100001100000000",  -- 4h  LD A,(DP)
-        "010101000000000",  -- 5h  ST A,(DP)
-        "100010001000111",  -- 6h  LD A,(addr) = LD DP,addr...
-        "100001100000000",  -- 7h  ...LD A,(DP)
-        "100010001001001",  -- 8h  ST A,(addr) = LD DP,addr...
-        "010101000000000",  -- 9h  ...ST A,(DP)
-        "000000000000000",  -- Ah
-        "000000000000000",  -- Bh
-        "100000011000000",  -- Ch  JMP imm
-        "000000000000000",  -- Dh
-        "101000101000000",  -- Eh  ADD A,imm
-        "101100101000000"   -- Fh  SUB A,imm
+        "1000000011100000",  -- 00h  load IR & increment IP / decode instruction
+        "0000000000000000",  -- 01h
+        "1000001010000000",  -- 02h  LD A,imm
+        "1000100010000000",  -- 03h  LD DP,imm
+        "1000011000000000",  -- 04h  LD A,(DP)
+        "0101010000000000",  -- 05h  ST A,(DP)
+        "1000100010000100",  -- 06h  LD A,(addr) = LD DP,addr / LD A,(DP)
+        "0000000000000000",  -- 07h
+        "1000100010000101",  -- 08h  ST A,(addr) = LD DP,addr / ST A,(DP)
+        "0000000000000000",  -- 09h
+        "1000110000000000",  -- 0Ah  LD DP,(DP)
+        "0000000000000000",  -- 0Bh
+        "1000000110000000",  -- 0Ch  JMP imm
+        "0000000000000000",  -- 0Dh
+        "1010001010000000",  -- 0Eh  ADD A,imm
+        "1011001010000000",  -- 0Fh  SUB A,imm
+        "0000000000000000",  -- 10h
+        "0000000000000000",  -- 11h
+        "0000000000000000",  -- 12h
+        "0000000000000000",  -- 13h
+        "0000000000000000",  -- 14h
+        "0000000000000000",  -- 15h
+        "0000000000000000",  -- 16h
+        "0000000000000000",  -- 17h
+        "0000000000000000",  -- 18h
+        "0000000000000000",  -- 19h
+        "0000000000000000",  -- 1Ah
+        "0000000000000000",  -- 1Bh
+        "0000000000000000",  -- 1Ch
+        "0000000000000000",  -- 1Dh
+        "0000000000000000",  -- 1Eh
+        "0000000000000000"   -- 1Fh
         );
 
     component reg_logic is
@@ -127,7 +143,7 @@ architecture behavior of test_auto is
 
     signal step_cur : STEP;  -- step from ROM_STEP
 
-    signal C : std_logic_vector (P - N - 1 downto 0);  -- control bus
+    signal C : std_logic_vector (P - M - 1 downto 0);  -- control bus
 
     signal data_in : WORD;  -- data bus input
     signal data_out : WORD;  -- data bus output
@@ -169,14 +185,14 @@ begin
     index_next <= index_ins when index_sel = '1' else index_step;
 
     index_reg: reg_logic
-        generic map (N => N)
+        generic map (N => M)
         port map (I => index_next, O => index_cur, E => '1', R => R, CK => NCK);
 
     step_cur <= rom_step_0 (to_integer (unsigned (index_cur)));
 
-    index_step <= step_cur (N-1 downto 0);
+    index_step <= step_cur (M-1 downto 0);
 
-    C <= step_cur (P-1 downto N);
+    C <= step_cur (P-1 downto M);
 
     ir_en      <= C (0);
     index_sel  <= C (1);
@@ -189,7 +205,7 @@ begin
     wr_en      <= C (9);
     rd_en      <= C (10);
 
-    ip_next <= data_in when ip_sel = '1' else addr_next;
+    ip_next <= data_out when ip_sel = '1' else addr_next;
 
     ip_reg: reg_logic
         generic map (N => N)
@@ -197,7 +213,7 @@ begin
 
     dp_reg: reg_logic
         generic map (N => N)
-        port map (I => data_in, O => dp_val, E => dp_en, R => R, CK => CK);
+        port map (I => data_out, O => dp_val, E => dp_en, R => R, CK => CK);
 
     addr_out <= dp_val when addr_sel = '1' else ip_val;
 
