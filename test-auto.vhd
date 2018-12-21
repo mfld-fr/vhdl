@@ -8,7 +8,7 @@ entity test_auto is
     generic (
         N : positive := 5;  -- word width
         M : positive := 5;  -- index width
-        P : positive := 18  -- step width
+        P : positive := 20  -- step width
         );
 
 end entity;
@@ -96,53 +96,55 @@ architecture behavior of test_auto is
     subtype STEP is std_logic_vector (P-1 downto 0);
     type ROM_STEP is array (0 to 2**M - 1) of STEP;
 
-    --   CBA9876543210
-    --   X                pointer value select (0: data pointer, 1: instruction pointer)
-    --    X               ALU right operand select (0: data input, 1: pointer value)
-    --     X              data read enable
-    --      X             data write enable
-    --       XX           ALU operation select (00: right, 01: left, 10: add, 11: sub)
-    --         X          DP register input enable
-    --          X         address source select (0: instruction pointer, 1: data pointer)
-    --           X        accumulator input enable
-    --            X       IP next value select (0: incremented address, 1: ALU ouput)
-    --             X      IP register input enable
-    --              X     next index select (0: step, 1: instruction register)
-    --               X    instruction register input enable
+    --   EDCBA9876543210
+    --   X                pointer operand select (0: pointer value, 1: instruction pointer)
+    --    X               SP register input enable
+    --     X              pointer value select (0: data pointer, 1: stack pointer)
+    --      X             ALU right operand select (0: data input, 1: pointer value)
+    --       X            data read enable
+    --        X           data write enable
+    --         XX         ALU operation select (00: right, 01: left, 10: add, 11: sub)
+    --           X        DP register input enable
+    --            X       address source select (0: instruction pointer, 1: pointer value)
+    --             X      accumulator input enable
+    --              X     IP next value select (0: incremented address, 1: data ouput)
+    --               X    IP register input enable
+    --                X   next index select (0: step, 1: instruction register)
+    --                 X  IR register input enable
 
     constant rom_step_0: ROM_STEP := (
-        "001000000011100000",  -- 00h  load IR & increment IP / decode instruction
-        "000000000000000000",  -- 01h
-        "001000001010000000",  -- 02h  LD A,imm
-        "001000100010000000",  -- 03h  LD DP,imm
-        "001000011000000000",  -- 04h  LD A,(DP)
-        "000101010000000000",  -- 05h  ST A,(DP)
-        "001000100010000100",  -- 06h  LD A,(addr) = LD DP,addr / LD A,(DP)
-        "000000000000000000",  -- 07h
-        "001000100010000101",  -- 08h  ST A,(addr) = LD DP,addr / ST A,(DP)
-        "000000000000000000",  -- 09h
-        "001000110000000000",  -- 0Ah  LD DP,(DP)
-        "001000100010001010",  -- 0Bh  LD DP,(addr) = LD DP,addr / LD DP,(DP)
-        "001000000110000000",  -- 0Ch  JMP imm
-        "000000000000000000",  -- 0Dh
-        "001010001010000000",  -- 0Eh  ADD A,imm
-        "001011001010000000",  -- 0Fh  SUB A,imm
-        "000000000000000000",  -- 10h
-        "000000000000000000",  -- 11h
-        "000001100000000000",  -- 12h  MV DP,A
-        "000001000110000000",  -- 13h  MV IP,A
-        "010000001000000000",  -- 14h  MV A,DP
-        "110000001000000000",  -- 15h  MV A,IP
-        "000000000000000000",  -- 16h
-        "000000000000000000",  -- 17h
-        "000000000000000000",  -- 18h
-        "000000000000000000",  -- 19h
-        "000000000000000000",  -- 1Ah
-        "000000000000000000",  -- 1Bh
-        "000000000000000000",  -- 1Ch
-        "000000000000000000",  -- 1Dh
-        "000000000000000000",  -- 1Eh
-        "000000000000000000"   -- 1Fh
+        "00001000000011100000",  -- 00h  load IR & increment IP / decode instruction
+        "00000000000000000000",  -- 01h
+        "00001000001010000000",  -- 02h  LD A,imm
+        "00001000100010000000",  -- 03h  LD DP,imm
+        "00001000011000000000",  -- 04h  LD A,(DP)
+        "00000101010000000000",  -- 05h  ST A,(DP)
+        "00001000100010000100",  -- 06h  LD A,(addr) = LD DP,addr / LD A,(DP)
+        "00000000000000000000",  -- 07h
+        "00001000100010000101",  -- 08h  ST A,(addr) = LD DP,addr / ST A,(DP)
+        "00000000000000000000",  -- 09h
+        "00001000110000000000",  -- 0Ah  LD DP,(DP)
+        "00001000100010001010",  -- 0Bh  LD DP,(addr) = LD DP,addr / LD DP,(DP)
+        "00001000000110000000",  -- 0Ch  JMP imm
+        "00000000000000000000",  -- 0Dh
+        "00001010001010000000",  -- 0Eh  ADD A,imm
+        "00001011001010000000",  -- 0Fh  SUB A,imm
+        "00000000000000000000",  -- 10h
+        "00000000000000000000",  -- 11h
+        "00000001100000000000",  -- 12h  MV DP,A
+        "00000001000110000000",  -- 13h  MV IP,A
+        "00010000001000000000",  -- 14h  MV A,DP
+        "10010000001000000000",  -- 15h  MV A,IP
+        "00000000000000000000",  -- 16h
+        "00000000000000000000",  -- 17h
+        "00000000000000000000",  -- 18h
+        "00000000000000000000",  -- 19h
+        "00000000000000000000",  -- 1Ah
+        "00000000000000000000",  -- 1Bh
+        "00000000000000000000",  -- 1Ch
+        "00000000000000000000",  -- 1Dh
+        "00000000000000000000",  -- 1Eh
+        "00000000000000000000"   -- 1Fh
         );
 
     component reg_logic is
@@ -165,8 +167,8 @@ architecture behavior of test_auto is
     signal NCK : std_logic := '1';
 
     signal R : std_logic := '1';
-    
-    signal ins_val : WORD;
+
+    -- CONTROL UNIT
 
     signal index_cur : INDEX;  -- current from index register
     signal index_ins : INDEX;  -- index from ROM_INDEX
@@ -179,32 +181,40 @@ architecture behavior of test_auto is
 
     signal C : std_logic_vector (P - M - 1 downto 0);  -- control bus
 
-    signal data_in : WORD;  -- data bus input
-    signal data_out : WORD;  -- data bus output
+    -- EXECUTIVE UNIT
+
+    signal data_in : WORD;     -- data bus input
+    signal data_out : WORD;    -- data bus output
     signal rd_en : std_logic;  -- read enable
     signal wr_en : std_logic;  -- write enable
 
+    signal ins_val : WORD;
     signal ir_en : std_logic;  -- instruction register enable
 
     signal ip_next : WORD;     -- instruction pointer next value
-    signal ip_val : WORD;     -- instruction pointer current value
+    signal ip_val : WORD;      -- instruction pointer current value
     signal ip_sel : std_logic; -- instruction pointer next value select
     signal ip_en : std_logic;  -- instruction pointer input enable
 
-    signal dp_val : WORD;  -- data pointer value
+    signal sp_val : WORD;      -- stack pointer value
+    signal dp_val : WORD;      -- data pointer value
+    signal sp_en : std_logic;  -- stack pointer input enable
     signal dp_en : std_logic;  -- data pointer input enable
 
-    signal addr_out : WORD;
-    signal addr_next : WORD;  -- address next value (incremented)
-    signal addr_sel : std_logic;  -- select address source
+    signal ptr_val : WORD;       -- pointer register value
+    signal ptr_sel : std_logic;  -- pointer register value select
 
-    signal ptr_val : WORD;  -- selected pointer value
-    signal ptr_sel : std_logic;  -- pointer value select
+    signal addr_out : WORD;       -- address current value
+    signal addr_next : WORD;      -- address next value (incremented)
+    signal addr_sel : std_logic;  -- select address ouput source
+
+    signal op_val : WORD;       -- pointer operand value
+    signal op_sel : std_logic;  -- pointer operand select
 
     signal acc_en : std_logic;  -- accumulator enable
 
-    signal alu_left : WORD;   -- ALU left operand value
-    signal alu_right : WORD;  -- ALU right operand value
+    signal alu_left : WORD;        -- ALU left operand value
+    signal alu_right : WORD;       -- ALU right operand value
     signal right_sel : std_logic;  -- ALU right operand select
 
     signal alu_op : std_logic_vector (1 downto 0);  -- ALU operation select
@@ -213,9 +223,7 @@ begin
 
     NCK <= not CK;
 
-    ins_reg: reg_logic
-        generic map (N => N)
-        port map (I => data_in, O => ins_val, E => ir_en, R => R, CK => CK);
+    -- CONTROL UNIT
 
     index_ins <= rom_index_0 (to_integer (unsigned (ins_val)));
 
@@ -243,6 +251,14 @@ begin
     rd_en      <= C (10);
     right_sel  <= C (11);
     ptr_sel    <= C (12);
+    sp_en      <= C (13);
+    op_sel     <= C (14);
+
+    -- EXECUTIVE UNIT
+
+    ins_reg: reg_logic
+        generic map (N => N)
+        port map (I => data_in, O => ins_val, E => ir_en, R => R, CK => CK);
 
     ip_next <= data_out when ip_sel = '1' else addr_next;
 
@@ -250,23 +266,29 @@ begin
         generic map (N => N)
         port map (I => ip_next, O => ip_val, E => ip_en, R => R, CK => CK);
 
+    sp_reg: reg_logic
+        generic map (N => N)
+        port map (I => data_out, O => sp_val, E => sp_en, R => R, CK => CK);
+
     dp_reg: reg_logic
         generic map (N => N)
         port map (I => data_out, O => dp_val, E => dp_en, R => R, CK => CK);
 
-    addr_out <= dp_val when addr_sel = '1' else ip_val;
+    ptr_val <= sp_val when ptr_sel = '1' else dp_val;
+
+    addr_out <= ptr_val when addr_sel = '1' else ip_val;
 
     addr_next <= std_logic_vector (unsigned (addr_out) + to_unsigned (1, N));
 
     data_in <= mem_0 (to_integer (unsigned (addr_out)));
 
-    ptr_val <= ip_val when ptr_sel = '1' else dp_val;
-
     acc_reg: reg_logic
         generic map (N => N)
         port map (I => data_out, O => alu_left, E => acc_en, R => R, CK => CK);
 
-    alu_right <= ptr_val when right_sel = '1' else data_in;
+    op_val <= ip_val when op_sel = '1' else ptr_val;
+
+    alu_right <= op_val when right_sel = '1' else data_in;
 
     data_out <= alu_right when alu_op = "00"
         else alu_left when alu_op = "01"
