@@ -12,6 +12,7 @@ architecture behavior of test_flip_flop_d is
 	        E : in std_logic;
 	        Q : out std_logic;
 	        
+	        S : in std_logic;
 	        R : in std_logic;
 	        CK : in std_logic
         );
@@ -19,6 +20,7 @@ architecture behavior of test_flip_flop_d is
     end component;
 
     signal CK : std_logic := '0';
+    signal S : std_logic := '0';
     signal R : std_logic := '0';
 
     signal D : std_logic := '0';
@@ -27,32 +29,36 @@ architecture behavior of test_flip_flop_d is
 
 begin
 
-    ff_0: flip_flop_d port map (D => D, E => E, Q => Q, R => R, CK => CK);
+    ff_0: flip_flop_d port map (D => D, E => E, Q => Q, S => S, R => R, CK => CK);
 
     clock_1: process
     begin
         CK <= '0';
-        wait for 1 ns;
+        wait for 1 ms;
         CK <= '1';
-        wait for 1 ns;
+        wait for 1 ms;
     end process;
 
     test_1: process
     begin
+        S <= '1';
+        wait for 1 ms;
+        S <= '0';
+        wait for 10 ms;
         R <= '1';
-        wait for 10 ns;
+        wait for 1 ms;
         R <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         D <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         D <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '0';
     end process;
 

@@ -2,11 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 
-entity latch_sr_nand is
+entity latch_sr_nor is
 
 	port (
-	    NS : in std_logic;
-	    NR : in std_logic;
+	    S : in std_logic;
+	    R : in std_logic;
 
 	    Q : inout std_logic;
 	    NQ : inout std_logic
@@ -15,11 +15,11 @@ entity latch_sr_nand is
 end entity;
 
 
-architecture behavior of latch_sr_nand is
+architecture behavior of latch_sr_nor is
 begin
 
-	Q <= NS nand NQ;
-	NQ <= NR nand Q;
+	Q <= R nor NQ;
+	NQ <= S nor Q;
 
 end architecture;
 
