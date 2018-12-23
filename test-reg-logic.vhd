@@ -11,7 +11,6 @@ end test_reg;
 
 architecture behavior of test_reg is
 
---  component reg_flip_flop is
     component reg_logic is
 
         generic (N : positive);
@@ -38,7 +37,6 @@ architecture behavior of test_reg is
 
 begin
 
---  reg_0: reg_flip_flop
     reg_0: reg_logic
         generic map (N => N)
         port map (I => I, O => O, E => E, R => R, CK => CK);
@@ -46,26 +44,26 @@ begin
     clock_1: process
     begin
         CK <= '0';
-        wait for 1 ns;
+        wait for 1 ms;
         CK <= '1' nand R;
-        wait for 1 ns;
+        wait for 1 ms;
     end process;
 
     test_1: process
     begin
-        wait for 10 ns;
+        wait for 10 ms;
         R <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         I <= "1010";
         E <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         I <= "0101";
         E <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         R <= '1';
     end process;
 

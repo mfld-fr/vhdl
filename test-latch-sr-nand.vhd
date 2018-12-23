@@ -13,15 +13,15 @@ architecture behavior of test_latch_sr_nand is
 	        NS : in std_logic;
 	        NR : in std_logic;
 
-	        Q : inout std_logic;
-	        NQ : inout std_logic
+	        Q  : out std_logic;
+	        NQ : out std_logic
 	        );
 
     end component;
 
     signal NS : std_logic := '1';
     signal NR : std_logic := '1';
-    signal Q : std_logic;
+    signal Q  : std_logic;
 
 begin
 

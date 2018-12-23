@@ -10,7 +10,7 @@ entity flip_flop_sr is
 
         CK : in std_logic;
 
-        Q : out std_logic;
+        Q  : out std_logic;
         NQ : out std_logic
         );
 
@@ -33,7 +33,7 @@ begin
 
     end process;
 
-    Q <= T;
+    Q  <= T;
     NQ <= not T;
 
 end architecture;

@@ -1,0 +1,16 @@
+CPU88
+
+- FIXME: data input latch
+- Add zero flag
+- Conditional branching
+- Complete ALU (add, sub, or, and, xor, inc, dec, shl, shr...)
+- Instruction encoding / decoding
+- Bus control & wait states (for static RAM)
+- Address pre-increment / post-increment for pointers
+- Add 2 more pointer registers (P0..P3)
+- Interrupt handling
+- Add HLT instruction
+
+CPU168
+
+- Register pairs for addressing

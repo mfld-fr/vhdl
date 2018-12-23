@@ -7,7 +7,7 @@ entity count_flip_flop is
     generic (N : positive);
 
     port (
-        Q : inout std_logic_vector (N-1 downto 0);
+        O : out std_logic_vector (N-1 downto 0);
 
         E : in std_logic;  -- enable
         R : in std_logic;  -- reset
@@ -28,21 +28,24 @@ architecture behavior of count_flip_flop is
 
 	        S : in std_logic;
 	        R : in std_logic;
+
 	        CK : in std_logic
         );
 
     end component;
 
-    signal NQ : std_logic_vector (N-1 downto 0);
+    signal T  : std_logic_vector (N-1 downto 0);
+    signal NT : std_logic_vector (N-1 downto 0);
 
 begin
 
-    ff_0: flip_flop_d port map (D => NQ(0), E => E, Q => Q(0), S => '0', R => R, CK => CK);
+    ff_0: flip_flop_d port map (D => NT(0), E => E, Q => T(0), S => '0', R => R, CK => CK);
     
     ff_N: for I in 1 to N-1 generate
-        ff_I: flip_flop_d port map (D => NQ(I), E => E, Q => Q(I), S => '0', R => R, CK => NQ(I-1));
+        ff_I: flip_flop_d port map (D => NT(I), E => E, Q => T(I), S => '0', R => R, CK => NT(I-1));
     end generate;
 
-    NQ <= not Q;
+    NT <= not T;
+    O <= T;
 
 end behavior;

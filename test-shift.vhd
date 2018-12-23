@@ -10,6 +10,7 @@ end test_shift;
 architecture behavior of test_shift is
 
     component flip_flop_d is
+
 	    port (
 	        D : in std_logic;
 	        E : in std_logic;
@@ -37,23 +38,23 @@ begin
         ff_I: flip_flop_d port map (D => Q(I-1), E => E, Q => Q(I), S => '0', R => R, CK => CK);
     end generate;
 
-    clock_1: process
+    process
     begin
         CK <= '0';
-        wait for 1 ns;
+        wait for 1 ms;
         CK <= '1' nand R;
-        wait for 1 ns;
+        wait for 1 ms;
     end process;
 
-    test_1: process
+    process
     begin
-        wait for 10 ns;
+        wait for 10 ms;
         R <= '0';
-        wait for 10 ns;
+        wait for 10 ms;
         E <= '1';
-        wait for 50 ns;
+        wait for 50 ms;
         E <= '0';
-        wait for 50 ns;
+        wait for 50 ms;
     end process;
 
 end behavior;

@@ -15,16 +15,18 @@ architecture behavior of test_flip_flop_sr_nor is
 	    
 	    CK : in std_logic;
 
-	    Q : inout std_logic;
-	    NQ : inout std_logic
+	    Q  : out std_logic;
+	    NQ : out std_logic
 	    );
 
     end component;
 
     signal S : std_logic := '0';
     signal R : std_logic := '0';
+
     signal CK : std_logic := '0';
-    signal Q : std_logic;
+
+    signal Q  : std_logic;
     signal NQ : std_logic;
 
 begin

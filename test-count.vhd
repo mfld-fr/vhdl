@@ -6,7 +6,7 @@ entity test_count is
 
     generic (N : positive := 4);
 
-end test_count;
+end entity;
 
 
 architecture behavior of test_count is
@@ -16,7 +16,7 @@ architecture behavior of test_count is
         generic (N : positive);
 
         port (
-            Q : inout std_logic_vector (N-1 downto 0);
+            Q : out std_logic_vector (N-1 downto 0);
 
             E : in std_logic;  -- enable
             R : in std_logic;  -- reset
@@ -27,18 +27,19 @@ architecture behavior of test_count is
     end component;
 
     signal CK : std_logic := '0';
+
     signal R : std_logic := '1';
     signal E : std_logic := '0';
     
-    signal Q : std_logic_vector (N-1 downto 0);
+    signal O : std_logic_vector (N-1 downto 0);
 
 begin
 
     count_0: count_flip_flop
         generic map (N => N)
-        port map (Q => Q, E => E, R => R, CK => CK);
+        port map (O => O, E => E, R => R, CK => CK);
     
-    clock_1: process
+    process
     begin
         CK <= '0';
         wait for 1 ns;
@@ -46,7 +47,7 @@ begin
         wait for 1 ns;
     end process;
 
-    test_1: process
+    process
     begin
         wait for 10 ns;
         R <= '0';
@@ -58,4 +59,4 @@ begin
         R <= '1';
     end process;
 
-end behavior;
+end architecture;

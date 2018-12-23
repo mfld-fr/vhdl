@@ -15,8 +15,8 @@ architecture behavior of test_latch_sre_nor is
 	        R : in std_logic;
 	        E : in std_logic;
 
-	        Q : inout std_logic;
-	        NQ : inout std_logic
+	        Q  : out std_logic;
+	        NQ : out std_logic
 	        );
 
     end component;
@@ -26,7 +26,7 @@ architecture behavior of test_latch_sre_nor is
     
     signal E : std_logic := '0';
 
-    signal Q : std_logic;
+    signal Q  : std_logic;
     signal NQ : std_logic;
 
 begin
