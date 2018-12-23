@@ -1,3 +1,8 @@
+COMPONENTS
+
+- Add logical latch-d
+- Split shift component & test
+
 CPU88
 
 - FIXME: data input latch
