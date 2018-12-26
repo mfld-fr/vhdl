@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 
-entity test_auto is
+entity test_cpu is
 
     generic (
         N : positive := 5;  -- word width
@@ -14,7 +14,7 @@ entity test_auto is
 end entity;
 
 
-architecture behavior of test_auto is
+architecture behavior of test_cpu is
 
     subtype WORD is std_logic_vector (N-1 downto 0);
 
@@ -150,7 +150,7 @@ architecture behavior of test_auto is
         "000000000000000000000000"   -- 1Fh
         );
 
-    component reg_logic is
+    component reg_w is
 
         generic (N : positive);
     
@@ -169,7 +169,7 @@ architecture behavior of test_auto is
     signal CK : std_logic := '0';
     signal NCK : std_logic;
 
-    signal R : std_logic;
+    signal R : std_logic := '1';
 
     -- CONTROL UNIT
 
@@ -186,7 +186,7 @@ architecture behavior of test_auto is
 
     -- EXECUTIVE UNIT
 
-    signal addr_out : WORD;      -- address bus out
+    signal addr_out : WORD;  -- address bus
     signal addr_en : std_logic;  -- address enable
 
     signal data_in : WORD;       -- data bus input
@@ -194,6 +194,8 @@ architecture behavior of test_auto is
     signal data_out : WORD;      -- data bus output
     signal rd_en : std_logic;    -- read enable
     signal wr_en : std_logic;    -- write enable
+	signal rd_o  : std_logic;    -- read output strobe
+	signal rd_i  : std_logic;    -- read input strobe
 
     signal ins_val : WORD;
     signal ir_en : std_logic;  -- instruction register enable
@@ -243,7 +245,7 @@ begin
 
     index_next <= index_ins when index_sel = '1' else index_step;
 
-    index_reg: reg_logic
+    index_reg: reg_w
         generic map (N => M)
         port map (I => index_next, O => index_cur, E => '1', R => R, CK => NCK);
 
@@ -275,21 +277,21 @@ begin
 
     -- EXECUTIVE UNIT
 
-    ins_reg: reg_logic
+    ins_reg: reg_w
         generic map (N => N)
         port map (I => data_val, O => ins_val, E => ir_en, R => R, CK => CK);
 
     ip_next <= alu_val when ip_sel = '1' else addr_next;
 
-    ip_reg: reg_logic
+    ip_reg: reg_w
         generic map (N => N)
         port map (I => ip_next, O => ip_val, E => ip_en, R => R, CK => CK);
 
-    dp_reg: reg_logic
+    dp_reg: reg_w
         generic map (N => N)
         port map (I => alu_val, O => dp_val, E => dp_en, R => R, CK => CK);
 
-    sp_reg: reg_logic
+    sp_reg: reg_w
         generic map (N => N)
         port map (I => alu_val, O => sp_val, E => sp_en, R => R, CK => CK);
 
@@ -297,23 +299,36 @@ begin
 
     addr_val <= ptr_val when addr_sel = '1' else ip_val;
 
-    addr_next <= std_logic_vector (unsigned (addr_val) + to_unsigned (1, N));
+	addr_next <= std_logic_vector (unsigned (addr_val) + to_unsigned (1, N));
 
-    addr_en <= wr_en or rd_en;
+	addr_en <= wr_en or rd_en;
 
-    addr_out <= addr_val when addr_en = '1' else (addr_out'range => 'Z');
+	addr_out <= addr_val when addr_en = '1' else (WORD'range => 'Z');
 
-    data_in <= mem_0 (to_integer (unsigned (addr_out))) when rd_en = '1' else (data_in'range => 'Z');
+	-- asynchronous RAM timing when reading
 
-    data_val <= data_in when rd_en = '1' else (data_val'range => 'U');
+	process (R, rd_en)
+	begin
+		if R = '1' or rd_en = '0' then
+			rd_o <= '0';
+			rd_i <= '0';
+		else
+			rd_o <= '1' after 100 us;
+			rd_i <= '1' after 300 us;
+		end if;
+	end process;
 
-    a0_reg: reg_logic
-        generic map (N => N)
-        port map (I => alu_val, O => a0_val, E => a0_en, R => R, CK => CK);
+	data_in <= mem_0 (to_integer (unsigned (addr_out))) after 100 us when rd_o = '1' else (WORD'range => 'Z') after 100 us;
 
-    a1_reg: reg_logic
-        generic map (N => N)
-        port map (I => alu_val, O => a1_val, E => a1_en, R => R, CK => CK);
+	data_val <= data_in when rd_i = '1';  -- infered latch
+
+	a0_reg: reg_w
+		generic map (N => N)
+		port map (I => alu_val, O => a0_val, E => a0_en, R => R, CK => CK);
+
+	a1_reg: reg_w
+		generic map (N => N)
+		port map (I => alu_val, O => a1_val, E => a1_en, R => R, CK => CK);
 
     acc_val <= a1_val when acc_sel = '1' else a0_val;
 
@@ -329,23 +344,21 @@ begin
         else std_logic_vector (unsigned (alu_left) + to_unsigned (1, N)) when alu_op = "100"
         else std_logic_vector (unsigned (alu_left) - to_unsigned (1, N)) when alu_op = "101";
 
-    data_out <= alu_val when wr_en = '1' else (data_out'range => 'Z');
+    data_out <= alu_val when wr_en = '1' else (WORD'range => 'Z');
 
     mem_0 (to_integer (unsigned (addr_out))) <= data_out when wr_en = '1' and rising_edge (CK);
 
     reset_1: process
     begin
-        R <= '1';
-        wait for 10 ns;
+        wait for 10 ms;
         R <= '0';
-        wait for 1000 ns;
     end process;
 
     clock_1: process
     begin
-        wait for 1 ns;
+        wait for 1 ms;
         CK <= '1' nand R;
-        wait for 1 ns;
+        wait for 1 ms;
         CK <= '0';
     end process;
 

@@ -1,23 +1,27 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity test_shift is
+
+entity test_shift_flip_flop is
 
     generic (N : Integer := 8);
 
-end test_shift;
+end entity;
 
-architecture behavior of test_shift is
+
+architecture behavior of test_shift_flip_flop is
 
     component flip_flop_d is
 
 	    port (
 	        D : in std_logic;
 	        E : in std_logic;
+
 	        Q : out std_logic;
 	        
 	        S : in std_logic;
 	        R : in std_logic;
+
 	        CK : in std_logic
         );
 
@@ -57,4 +61,4 @@ begin
         wait for 50 ms;
     end process;
 
-end behavior;
+end architecture;

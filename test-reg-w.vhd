@@ -2,16 +2,16 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 
-entity test_reg is
+entity test_reg_w is
 
     generic (N : positive := 4);
 
-end test_reg;
+end entity;
 
 
-architecture behavior of test_reg is
+architecture behavior of test_reg_w is
 
-    component reg_logic is
+    component reg_w is
 
         generic (N : positive);
     
@@ -37,7 +37,7 @@ architecture behavior of test_reg is
 
 begin
 
-    reg_0: reg_logic
+    reg_0: reg_w
         generic map (N => N)
         port map (I => I, O => O, E => E, R => R, CK => CK);
     
@@ -67,4 +67,4 @@ begin
         R <= '1';
     end process;
 
-end behavior;
+end architecture;

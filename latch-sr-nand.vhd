@@ -5,27 +5,23 @@ use ieee.std_logic_1164.all;
 entity latch_sr_nand is
 
 	port (
-	    NS : in std_logic;
-	    NR : in std_logic;
+		S : in std_logic;  -- set on low
+		R : in std_logic;  -- reset on low
 
-	    Q  : out std_logic;
-	    NQ : out std_logic
-	    );
+		Q  : inout std_logic;
+		NQ : inout std_logic
+	);
 
 end entity;
 
 
 architecture behavior of latch_sr_nand is
 
-signal T  : std_logic;
-signal NT : std_logic;
-
 begin
 
-	T  <= NS nand NT;
-	NT <= NR nand T;
+	-- order for R priority
 
-    Q  <= T;
-    NQ <= T;
+	Q  <= S nand NQ after 100 us;
+	NQ <= R nand Q  after 100 us;
 
 end architecture;

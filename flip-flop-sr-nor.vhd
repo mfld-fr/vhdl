@@ -41,7 +41,7 @@ begin
 
     NCK <= not CK;
 
-    latch_1: latch_sre_nor port map (S => S, R => R,  E => CK,  Q => T, NQ => NT);
-    latch_2: latch_sre_nor port map (S => T, R => NT, E => NCK, Q => Q, NQ => NQ);
+    latch_0: latch_sre_nor port map (S => S, R => R,  E => CK,  Q => T, NQ => NT);
+    latch_1: latch_sre_nor port map (S => T, R => NT, E => NCK, Q => Q, NQ => NQ);
 
 end architecture;

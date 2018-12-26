@@ -1,11 +1,5 @@
-COMPONENTS
-
-- Add logical latch-d
-- Split shift component & test
-
 CPU88
 
-- FIXME: data input latch
 - Add zero flag
 - Conditional branching
 - Complete ALU (add, sub, or, and, xor, inc, dec, shl, shr...)

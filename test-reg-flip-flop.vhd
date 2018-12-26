@@ -2,14 +2,14 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 
-entity test_reg is
+entity test_reg_flip_flop is
 
     generic (N : positive := 4);
 
-end test_reg;
+end entity;
 
 
-architecture behavior of test_reg is
+architecture behavior of test_reg_flip_flop is
 
     component reg_flip_flop is
 
@@ -67,4 +67,4 @@ begin
         R <= '1';
     end process;
 
-end behavior;
+end architecture;

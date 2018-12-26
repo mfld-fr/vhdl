@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 
-entity reg_logic is
+entity reg_w is
 
     generic (N : positive);
 
@@ -19,9 +19,11 @@ entity reg_logic is
 end entity;
 
 
-architecture behavior of reg_logic is
+architecture behavior of reg_w is
 
 begin
+
+    -- incomplete when for infered latch
 
     O <= (I'range => '0') when R = '1' else I when E = '1' and rising_edge (CK);
 

@@ -8,57 +8,87 @@ end entity;
 
 architecture behavior of test_latch_sre_nand is
 
-    component latch_sre_nand is
-	    port (
-	        S : in std_logic;
-	        R : in std_logic;
+	component latch_sre_nand is
 
-	        E : in std_logic;
+		port (
+			S : in std_logic;
+			R : in std_logic;
 
-	        Q  : out std_logic;
-	        NQ : out std_logic
-	        );
+			E : in std_logic;
 
-    end component;
+			PS : in std_logic;
+			PR : in std_logic;
 
-    signal S : std_logic := '0';
-    signal R : std_logic := '0';
+			Q  : inout std_logic;
+			NQ : inout std_logic
+			);
 
-    signal E : std_logic := '0';
+	end component;
 
-    signal Q  : std_logic;
-    signal NQ : std_logic;
+	signal S : std_logic := '0';
+	signal R : std_logic := '0';
+
+	signal E : std_logic := '0';
+
+	signal PS : std_logic := '0';
+	signal PR : std_logic := '0';
+
+	signal Q  : std_logic;
+	signal NQ : std_logic;
 
 begin
 
-    latch_1: latch_sre_nand port map (S => S, R => R, E => E, Q => Q, NQ => NQ);
+	latch_0: latch_sre_nand port map (S => S, R => R, E => E, PS => PS, PR => PR, Q => Q, NQ => NQ);
 
-    process
-    begin
-        wait for 5 ms;
-        S <= '1';
-        wait for 1 ms;
-        S <= '0';
-        wait for 5 ms;
-        E <= '1';
-        wait for 5 ms;
-        S <= '1';
-        wait for 1 ms;
-        S <= '0';
-        wait for 5 ms;
-        E <= '0';
-        wait for 5 ms;
-        R <= '1';
-        wait for 1 ms;
-        R <= '0';
-        wait for 5 ms;
-        E <= '1';
-        wait for 5 ms;
-        R <= '1';
-        wait for 1 ms;
-        R <= '0';
-        wait for 5 ms;
-        E <= '0';
-      end process;
+	process
+	begin
+		wait for 10 ms;
+		PS <= '1';
+		wait for 1 ms;
+		assert Q = '1';
+		PS <= '0';
+		wait for 10 ms;
+		assert Q = '1';
+		PR <= '1';
+		wait for 1 ms;
+		assert Q = '0';
+		PR <= '0';
+		wait for 10 ms;
+		assert Q = '0';
+		S <= '1';
+		wait for 1 ms;
+		assert Q = '0';
+		S <= '0';
+		wait for 10 ms;
+		assert Q = '0';
+		E <= '1';
+		wait for 10 ms;
+		assert Q = '0';
+		S <= '1';
+		wait for 1 ms;
+		assert Q = '1';
+		S <= '0';
+		wait for 10 ms;
+		assert Q = '1';
+		E <= '0';
+		wait for 10 ms;
+		assert Q = '1';
+		R <= '1';
+		wait for 1 ms;
+		assert Q = '1';
+		R <= '0';
+		wait for 10 ms;
+		assert Q = '1';
+		E <= '1';
+		wait for 10 ms;
+		assert Q = '1';
+		R <= '1';
+		wait for 1 ms;
+		assert Q = '0';
+		R <= '0';
+		wait for 10 ms;
+		assert Q = '0';
+		E <= '0';
+	end process;
 
 end architecture;

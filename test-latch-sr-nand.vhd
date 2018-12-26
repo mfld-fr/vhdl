@@ -8,35 +8,47 @@ end entity;
 
 architecture behavior of test_latch_sr_nand is
 
-    component latch_sr_nand is
-	    port (
-	        NS : in std_logic;
-	        NR : in std_logic;
+	component latch_sr_nand is
 
-	        Q  : out std_logic;
-	        NQ : out std_logic
-	        );
+		port (
+			S : in std_logic;  -- set on low
+			R : in std_logic;  -- reset on low
 
-    end component;
+			Q  : inout std_logic;
+			NQ : inout std_logic
+		);
 
-    signal NS : std_logic := '1';
-    signal NR : std_logic := '1';
-    signal Q  : std_logic;
+	end component;
+
+	signal S : std_logic;
+	signal R : std_logic;
+
+	signal Q  : std_logic;
 
 begin
 
-    latch_1: latch_sr_nand port map (NS => NS, NR => NR, Q => Q);
+	latch_0: latch_sr_nand port map (S => S, R => R, Q => Q);
 
-    process
-        begin
-        wait for 10 ms;
-        NS <= '0';
-        wait for 1 ms;
-        NS <= '1';
-        wait for 10 ms;
-        NR <= '0';
-        wait for 1 ms;
-        NR <= '1';
-      end process;
+	process
+
+		variable T : boolean := false;
+
+	begin
+		wait for 10 ms;
+		S <= '0';
+		wait for 1 ms;
+		if T = true then assert Q = '1'; end if;
+		S <= '1';
+		wait for 1 ms;
+		if T = true then assert Q = '1'; end if;
+		wait for 10 ms;
+		R <= '0';
+		wait for 1 ms;
+		assert Q = '0';
+		T := true;  -- safe reset as R has priority
+		R <= '1';
+		wait for 1 ms;
+		assert Q = '0';
+	end process;
 
 end architecture;

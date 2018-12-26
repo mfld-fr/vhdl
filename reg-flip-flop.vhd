@@ -16,7 +16,7 @@ entity reg_flip_flop is
         CK : in std_logic  -- clock
         );
 
-end reg_flip_flop;
+end entity;
 
 
 architecture behavior of reg_flip_flop is
@@ -25,6 +25,7 @@ architecture behavior of reg_flip_flop is
 	    port (
 	        D : in std_logic;
 	        E : in std_logic;
+
 	        Q : out std_logic;
 
 	        S : in std_logic;
@@ -41,4 +42,4 @@ begin
         ff_I: flip_flop_d port map (D => I(B), E => E, Q => O(B), S => '0', R => R, CK => CK);
     end generate;
 
-end behavior;
+end architecture;

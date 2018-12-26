@@ -24,6 +24,7 @@ architecture behavior of count_flip_flop is
 	    port (
 	        D : in std_logic;
 	        E : in std_logic;
+
 	        Q : out std_logic;
 
 	        S : in std_logic;
