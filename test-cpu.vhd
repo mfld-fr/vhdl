@@ -8,7 +8,7 @@ entity test_cpu is
     generic (
         N : positive := 5;  -- word width
         M : positive := 5;  -- index width
-        P : positive := 24  -- step width
+        P : positive := 22  -- step width
         );
 
 end entity;
@@ -30,7 +30,7 @@ architecture behavior of test_cpu is
         "10110",  -- 06h  CALL 18h
         "11000",  -- 07h  ...
         "01100",  -- 08h  JMP 0h
-        "00000",  -- 00h  ...
+        "00000",  -- 09h  ...
         "00000",  -- 0Ah  NOP
         "00000",  -- 0Bh  NOP
         "00000",  -- 0Ch  NOP
@@ -71,7 +71,7 @@ architecture behavior of test_cpu is
         "01011",  -- 09h -> 0Bh  LD DP,(addr)
         "00000",  -- 0Ah -> 00h  NOP
         "00000",  -- 0Bh -> 00h  NOP
-        "01100",  -- 0Ch -> 0Ch  MOV IP,imm (= JMP imm)
+        "01100",  -- 0Ch -> 0Ch  LD IP,imm (= JMP imm)
         "00000",  -- 0Dh -> 00h  NOP
         "01110",  -- 0Eh -> 0Eh  ADD A,imm
         "01111",  -- 0Fh -> 0Fh  SUB A,imm
@@ -96,58 +96,56 @@ architecture behavior of test_cpu is
     subtype STEP is std_logic_vector (P-1 downto 0);
     type ROM_STEP is array (0 to 2**M - 1) of STEP;
 
-    --   210FEDCBA9876543210
-    --   X                    A0 enable
-    --    X                   A1 enable
-    --     X                  accumulator select (0: A0, 1: A1)
-    --      X                 SP enable
-    --       X                DP enable
-    --        X               pointer select (0: DP, 1: SP)
-    --         X              ALU left select (0: accumulator, 1: pointer)
-    --          X             operand select (0: data pointer, 1: IP)
-    --           X            ALU right select (0: data input, 1: pointer value)
-    --            X           data read enable
-    --             X          data write enable
-    --              XXX       ALU operation select (000: right, 001: left, 010: add, 011: sub, 100: inc, 101: dec)
-    --                 X      address source select (0: IP, 1: data pointer)
-    --                  X     IP next select (0: address + 1, 1: ALU ouput)
-    --                   X    IP enable
-    --                    X   next index select (0: step, 1: IR)
-    --                     X  IR enable
+    --   0FEDCBA9876543210
+    --   X                  A enable
+    --    X                 SP enable
+    --     X                DP enable
+    --      X               pointer select (0: DP, 1: SP)
+    --       X              ALU left select (0: accumulator, 1: pointer)
+    --        X             operand select (0: data pointer, 1: IP)
+    --         X            ALU right select (0: data input, 1: pointer value)
+    --          X           data read enable
+    --           X          data write enable
+    --            XXX       ALU operation select (000: right, 001: left, 010: add, 011: sub, 100: inc, 101: dec)
+    --               X      address source select (0: IP, 1: data pointer)
+    --                X     IP next select (0: address + 1, 1: ALU ouput)
+    --                 X    IP enable
+    --                  X   next index select (0: step, 1: IR)
+    --                   X  IR enable
 
     constant rom_step_0: ROM_STEP := (
-        "000000000100000011100000",  -- 00h  LD IR,(IP++) & decode instruction
-        "000000000000000000000000",  -- 01h
-        "100000000100000010000000",  -- 02h  LD A,imm = LD A,(IP++)
-        "000010000100000010000000",  -- 03h  LD DP,imm = LD DP,(IP++)
-        "100000000100001000000000",  -- 04h  LD A,(DP)
-        "000000000010011000000000",  -- 05h  ST A,(DP)
-        "000010000100000010000100",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
-        "000000000000000000000000",  -- 07h
-        "000010000100000010000101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
-        "000000000000000000000000",  -- 09h
-        "000010000100001000000000",  -- 0Ah  LD DP,(DP)
-        "000010000100000010001010",  -- 0Bh  LD DP,(addr) = LD DP,addr -> LD DP,(DP)
-        "000000000100000110000000",  -- 0Ch  JMP imm = LD IP,imm = LD IP,(IP++)
-        "000000000000000000000000",  -- 0Dh
-        "100000000100100010000000",  -- 0Eh  ADD A,imm
-        "100000000100110010000000",  -- 0Fh  SUB A,imm
-        "000000000000000000000000",  -- 10h
-        "000010000000010000000000",  -- 12h  MV DP,A
-        "000000000000000000000000",  -- 11h
-        "000000000000010110000000",  -- 13h  MV IP,A
-        "100000001000000000000000",  -- 14h  MV A,DP
-        "100000011000000000000000",  -- 15h  MV A,IP
-        "000101100001010000010111",  -- 16h  CALL imm = DEC SP...
-        "000001110011001000001100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
-        "000000000000000000000000",  -- 18h
-        "000000000000000000000000",  -- 19h
-        "000001000100001110011011",  -- 1Ah  RET = LD IP,(SP)...
-        "000101100001000000000000",  -- 1Bh  ...INC SP
-        "000000000000000000000000",  -- 1Ch
-        "000000000000000000000000",  -- 1Dh
-        "000000000000000000000000",  -- 1Eh
-        "000000000000000000000000"   -- 1Fh
+        "00000001000000111" & "00000",  -- 00h  LD IR,(IP++) & decode instruction
+        "00000000000000000" & "00000",  -- 01h
+        "10000001000000100" & "00000",  -- 02h  LD A,imm = LD A,(IP++)
+        "00100001000000100" & "00000",  -- 03h  LD DP,imm = LD DP,(IP++)
+        "10000001000010000" & "00000",  -- 04h  LD A,(DP)
+        "00000000100110000" & "00000",  -- 05h  ST A,(DP)
+        "00100001000000100" & "00100",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
+        "00000000000000000" & "00000",  -- 07h
+        "00100001000000100" & "00101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
+        "00000000000000000" & "00000",  -- 09h
+        "00100001000010000" & "00000",  -- 0Ah  LD DP,(DP)
+        "00100001000000100" & "01010",  -- 0Bh  LD DP,(addr) = LD DP,addr -> LD DP,(DP)
+        "00000001000001100" & "00000",  -- 0Ch  JMP imm = LD IP,imm = LD IP,(IP++)
+        "00000000000000000" & "00000",  -- 0Dh
+        "10000001001000100" & "00000",  -- 0Eh  ADD A,imm
+        "10000001001100100" & "00000",  -- 0Fh  SUB A,imm
+        "00000000000000000" & "00000",  -- 10h
+        "00100000000100000" & "00000",  -- 12h  MV DP,A
+        "00000000000000000" & "00000",  -- 11h
+        "00000000000101100" & "00000",  -- 13h  MV IP,A
+        "10000010000000000" & "00000",  -- 14h  MV A,DP
+        "10000110000000000" & "00000",  -- 15h  MV A,IP
+        "01011000010100000" & "10111",  -- 16h  CALL imm = DEC SP...
+        "00011100110010000" & "01100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
+        "00000000000000000" & "00000",  -- 18h
+        "00000000000000000" & "00000",  -- 19h
+        "00010001000011100" & "11011",  -- 1Ah  RET = LD IP,(SP)...
+        "01011000010000000" & "00000",  -- 1Bh  ...INC SP
+        "00000000000000000" & "00000",  -- 1Ch
+        "00000000000000000" & "00000",  -- 1Dh
+        "00000000000000000" & "00000",  -- 1Eh
+        "00000000000000000" & "00000"   -- 1Fh
         );
 
     component reg_w is
@@ -220,12 +218,8 @@ architecture behavior of test_cpu is
     signal op_val : WORD;         -- pointer operand value
     signal op_sel : std_logic;    -- pointer operand select
 
-    signal a0_en : std_logic;     -- accumulator A0 enable
-    signal a1_en : std_logic;     -- accumulator A1 enable
-    signal a0_val : WORD;         -- accumulator A0 value
-    signal a1_val : WORD;         -- accumulator A1 value
-    signal acc_val : WORD;        -- accumulator value
-    signal acc_sel : std_logic;   -- accumulor select
+    signal acc_en  : std_logic;   -- accumulator A enable
+    signal acc_val : WORD;        -- accumulator A value
 
     signal alu_left : WORD;        -- ALU left operand value
     signal alu_right : WORD;       -- ALU right operand value
@@ -255,10 +249,7 @@ begin
 
     C <= step_cur (P-1 downto M);
 
-    a0_en      <= C (18);
-    a1_en      <= C (17);
-    acc_sel    <= C (16);
-
+    acc_en     <= C (16);
     sp_en      <= C (15);
     dp_en      <= C (14);
     ptr_sel    <= C (13); -- TODO: invert DP & SP
@@ -314,23 +305,17 @@ begin
 			rd_i <= '0';
 		else
 			rd_o <= '1' after 100 us;
-			rd_i <= '1' after 300 us;
+			rd_i <= '1' after 200 us;
 		end if;
 	end process;
 
-	data_in <= mem_0 (to_integer (unsigned (addr_out))) after 100 us when rd_o = '1' else (WORD'range => 'Z') after 100 us;
+	data_in <= mem_0 (to_integer (unsigned (addr_out))) when rd_o = '1' else (WORD'range => 'Z');
 
 	data_val <= data_in when rd_i = '1';  -- infered latch
 
-	a0_reg: reg_w
+	acc_reg: reg_w
 		generic map (N => N)
-		port map (I => alu_val, O => a0_val, E => a0_en, R => R, CK => CK);
-
-	a1_reg: reg_w
-		generic map (N => N)
-		port map (I => alu_val, O => a1_val, E => a1_en, R => R, CK => CK);
-
-    acc_val <= a1_val when acc_sel = '1' else a0_val;
+		port map (I => alu_val, O => acc_val, E => acc_en, R => R, CK => CK);
 
     op_val <= ip_val when op_sel = '1' else ptr_val;
 

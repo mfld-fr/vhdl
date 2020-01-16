@@ -27,12 +27,12 @@ architecture behavior of test_reg_flip_flop is
 
     end component;
 
-    signal R : std_logic := '1';
-    signal CK : std_logic;
+    signal R : std_logic := '0';
+    signal CK : std_logic := '0';
 
     signal E : std_logic := '0';
 
-    signal I : std_logic_vector (N-1 downto 0) := "0000";
+    signal I : std_logic_vector (N-1 downto 0) := (N-1 downto 0 => '0');
     signal O : std_logic_vector (N-1 downto 0);
 
 begin
@@ -41,15 +41,15 @@ begin
         generic map (N => N)
         port map (I => I, O => O, E => E, R => R, CK => CK);
 
-    clock_1: process
+    process
     begin
-        CK <= '0';
         wait for 1 ms;
         CK <= '1' nand R;
         wait for 1 ms;
+        CK <= '0';
     end process;
 
-    test_1: process
+    process
     begin
         wait for 10 ms;
         R <= '0';

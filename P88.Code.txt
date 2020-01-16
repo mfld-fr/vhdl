@@ -1,0 +1,93 @@
+Processor 88 opcodes
+
+Goal is to use only one byte instruction.
+
+
+000 OOO RR    OP2 A,Rn
+001 OOO RR    OP2 A,(Rn)
+010 OOO RR    OP2 Rn,imm
+011 OOO RR    OP1 Rn
+
+100 OOO 00    OP2 A,imm
+100 OOO 01    OP1 A
+100 OOO 10    OP2 F,imm
+100 xxx 11    ---
+
+101 xxx 00    ---
+101 xxx 01    ---
+101 xxx 10    ---
+101 xxx 11    ---
+
+110 000 RR    LD A,Rn
+110 001 RR    LD A,(Rn)
+110 010 RR    ST A,Rn
+110 011 RR    ST A,(Rn)
+110 100 RR    LD Rn,imm
+110 101 xx    ---
+110 110 RR    LD IP,Rn     = JMP Rn
+110 111 RR    LD IP,(Rn)   = JMP (Rn)
+
+111 000 00    LD A,imm
+111 000 01    LD F,imm
+111 000 10    LD IP,imm    = JP imm
+111 000 11    BR imm
+
+111 001 00    ---
+111 001 01    ---
+111 001 10    ---
+111 001 11    ---
+
+111 010 CC    Jcond imm
+111 011 CC    Bcond imm
+
+111 100 00    LD A,F
+111 100 01    ---
+111 100 10    ST A,F
+111 100 11    ---
+
+111 101 00    ---
+111 101 01    ---
+111 101 10    ---
+111 101 11    ---
+
+111 110 00    ---
+111 110 01    ---
+111 110 10    RET
+111 110 11    ---
+
+111 111 00    ---
+111 111 01    ---
+111 111 10    ---
+111 111 11    NOP
+
+
+OP1
+
+000  INC
+001  DEC
+010  ---
+011  ---
+100  SHL
+101  SHR
+110  NOT
+111  ---
+
+
+OP2
+
+000  ADD
+001  SUB
+010  ---
+011  CMP
+100  OR
+101  AND
+110  XOR
+111  TST
+
+
+COND
+
+00 Z
+01 NZ
+10 C
+11 NC

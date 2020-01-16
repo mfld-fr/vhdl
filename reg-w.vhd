@@ -23,7 +23,7 @@ architecture behavior of reg_w is
 
 begin
 
-    -- incomplete when for infered latch
+    -- incomplete 'when' for infered latch
 
     O <= (I'range => '0') when R = '1' else I when E = '1' and rising_edge (CK);
 

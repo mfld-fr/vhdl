@@ -19,7 +19,7 @@ architecture behavior of latch_sr_nand is
 
 begin
 
-	-- order for R priority
+	-- this order for R priority
 
 	Q  <= S nand NQ after 100 us;
 	NQ <= R nand Q  after 100 us;

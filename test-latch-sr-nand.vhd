@@ -20,8 +20,8 @@ architecture behavior of test_latch_sr_nand is
 
 	end component;
 
-	signal S : std_logic;
-	signal R : std_logic;
+	signal S : std_logic := '1';
+	signal R : std_logic := '1';
 
 	signal Q  : std_logic;
 

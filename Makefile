@@ -41,6 +41,7 @@ analyse:
 	$(ANALYZE) test-shift-flip-flop.vhd
 	$(ANALYZE) reg-w.vhd
 	$(ANALYZE) test-reg-w.vhd
+	$(ANALYZE) test-cpu.vhd
 
 run:
 	$(RUN) test_latch_sr_nand $(ARGS)
@@ -55,6 +56,11 @@ run:
 	$(RUN) test_flip_flop_sr $(ARGS)
 	$(RUN) test_flip_flop_d $(ARGS)
 	$(RUN) test_reg_flip_flop $(ARGS)
-	$(RUN) test_reg_w $(ARGS)
 	$(RUN) test_count_flip_flop $(ARGS)
 	$(RUN) test_shift_flip_flop $(ARGS)
+	$(RUN) test_reg_w $(ARGS)
+	$(RUN) test_cpu $(ARGS)
+
+clean:
+	-rm test.vcd
+	-rm work-obj93.cf
