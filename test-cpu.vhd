@@ -18,42 +18,23 @@ architecture behavior of test_cpu is
 
     subtype WORD is std_logic_vector (N-1 downto 0);
 
-    type MEMORY is array (0 to 2**N - 1) of WORD;
+	component sram is
 
-    signal mem_0: MEMORY := (
-        "00011",  -- 00h  LD DP,1Dh
-        "11101",  -- 01h  ...
-        "10110",  -- 02h  CALL 10h
-        "10000",  -- 03h  ...
-        "00011",  -- 04h  LD DP,1Eh
-        "11110",  -- 05h  ...
-        "10110",  -- 06h  CALL 18h
-        "11000",  -- 07h  ...
-        "01100",  -- 08h  JMP 0h
-        "00000",  -- 09h  ...
-        "00000",  -- 0Ah  NOP
-        "00000",  -- 0Bh  NOP
-        "00000",  -- 0Ch  NOP
-        "00000",  -- 0Dh  NOP
-        "00000",  -- 0Eh  NOP
-        "00000",  -- 0Fh  NOP
-        "00100",  -- 10h  LD A,(DP)
-        "00000",  -- 11h  INC A ???
-        "00101",  -- 12h  ST A,(DP)
-        "10111",  -- 13h  RET
-        "00000",  -- 14h  NOP
-        "00000",  -- 15h  NOP
-        "00000",  -- 16h  NOP
-        "00000",  -- 17h  NOP
-        "00100",  -- 18h  LD A,(DP)
-        "00000",  -- 19h  DEC A ???
-        "00101",  -- 1Ah  ST A,(DP)
-        "10111",  -- 1Bh  RET
-        "00000",  -- 1Ch  NOP
-        "00000",  -- 1Dh  DW 0h (count 1)
-        "00000",  -- 1Eh  DW 0h (count 2)
-        "00000"   -- 1Fh  DW 0h (stack)
-        );
+		generic (
+		    DW : positive;  -- data width
+		    AW : positive   -- address width
+		    );
+
+		port (
+		    D : inout std_logic_vector (DW-1 downto 0);
+		    A : in std_logic_vector (AW-1 downto 0);
+
+		    CS : in std_logic;  -- chip select (inverted)
+		    OE : in std_logic;  -- output enable (inverted)
+			WE : in std_logic   -- write enable (inverted)
+		    );
+
+	end component;
         
     subtype INDEX is std_logic_vector (M-1 downto 0);
     type ROM_INDEX is array (0 to 2**N - 1) of INDEX;
@@ -89,8 +70,8 @@ architecture behavior of test_cpu is
         "00000",  -- 1Bh -> 00h  NOP
         "00000",  -- 1Ch -> 00h  NOP
         "00000",  -- 1Dh -> 00h  NOP
-        "00000",  -- 1Eh -> 00h  NOP
-        "00000"   -- 1Fh -> 00h  NOP
+        "11110",  -- 1Eh -> 1Eh  INC A
+        "11111"   -- 1Fh -> 1Fh  DEC A
         );
 
     subtype STEP is std_logic_vector (P-1 downto 0);
@@ -114,38 +95,38 @@ architecture behavior of test_cpu is
     --                   X  IR enable
 
     constant rom_step_0: ROM_STEP := (
-        "00000001000000111" & "00000",  -- 00h  LD IR,(IP++) & decode instruction
-        "00000000000000000" & "00000",  -- 01h
-        "10000001000000100" & "00000",  -- 02h  LD A,imm = LD A,(IP++)
-        "00100001000000100" & "00000",  -- 03h  LD DP,imm = LD DP,(IP++)
-        "10000001000010000" & "00000",  -- 04h  LD A,(DP)
-        "00000000100110000" & "00000",  -- 05h  ST A,(DP)
-        "00100001000000100" & "00100",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
+        "00000000000000000" & "00001",  -- 00h  NOP instruction
+        "00000001000000111" & "00001",  -- 01h  LD IR,(IP++) & decode instruction
+        "10000001000000100" & "00001",  -- 02h  LD A,imm = LD A,(IP++)
+        "00100001000000100" & "00001",  -- 03h  LD DP,imm = LD DP,(IP++)
+        "10000001000010000" & "00001",  -- 04h  LD A,(DP)
+        "00000000100110000" & "00001",  -- 05h  ST A,(DP)
+        "00100001000000100" & "00101",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
         "00000000000000000" & "00000",  -- 07h
         "00100001000000100" & "00101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
         "00000000000000000" & "00000",  -- 09h
-        "00100001000010000" & "00000",  -- 0Ah  LD DP,(DP)
+        "00100001000010000" & "00001",  -- 0Ah  LD DP,(DP)
         "00100001000000100" & "01010",  -- 0Bh  LD DP,(addr) = LD DP,addr -> LD DP,(DP)
-        "00000001000001100" & "00000",  -- 0Ch  JMP imm = LD IP,imm = LD IP,(IP++)
+        "00000001000001100" & "00001",  -- 0Ch  JMP imm = LD IP,imm = LD IP,(IP++)
         "00000000000000000" & "00000",  -- 0Dh
-        "10000001001000100" & "00000",  -- 0Eh  ADD A,imm
-        "10000001001100100" & "00000",  -- 0Fh  SUB A,imm
+        "10000001001000100" & "00001",  -- 0Eh  ADD A,imm
+        "10000001001100100" & "00001",  -- 0Fh  SUB A,imm
         "00000000000000000" & "00000",  -- 10h
-        "00100000000100000" & "00000",  -- 12h  MV DP,A
+        "00100000000100000" & "00001",  -- 12h  MV DP,A
         "00000000000000000" & "00000",  -- 11h
-        "00000000000101100" & "00000",  -- 13h  MV IP,A
-        "10000010000000000" & "00000",  -- 14h  MV A,DP
-        "10000110000000000" & "00000",  -- 15h  MV A,IP
+        "00000000000101100" & "00001",  -- 13h  MV IP,A
+        "10000010000000000" & "00001",  -- 14h  MV A,DP
+        "10000110000000000" & "00001",  -- 15h  MV A,IP
         "01011000010100000" & "10111",  -- 16h  CALL imm = DEC SP...
         "00011100110010000" & "01100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
         "00000000000000000" & "00000",  -- 18h
         "00000000000000000" & "00000",  -- 19h
         "00010001000011100" & "11011",  -- 1Ah  RET = LD IP,(SP)...
-        "01011000010000000" & "00000",  -- 1Bh  ...INC SP
+        "01011000010000000" & "00001",  -- 1Bh  ...INC SP
         "00000000000000000" & "00000",  -- 1Ch
         "00000000000000000" & "00000",  -- 1Dh
-        "00000000000000000" & "00000",  -- 1Eh
-        "00000000000000000" & "00000"   -- 1Fh
+        "10000000010000000" & "00001",  -- 1Eh  INC A
+        "10000000010100000" & "00001"   -- 1Fh  DEC A
         );
 
     component reg_w is
@@ -165,11 +146,18 @@ architecture behavior of test_cpu is
     end component;
 
     signal CK : std_logic := '0';
-    signal NCK : std_logic;
 
     signal R : std_logic := '1';
 
-    -- CONTROL UNIT
+    -- PHASE UNIT
+
+    type phase_type is (prep, exec_1, exec_2, exec_3);
+    signal phase : phase_type;
+
+    signal prep_en : std_logic;
+    signal exec_en : std_logic;
+
+    -- PREPARE UNIT
 
     signal index_cur : INDEX;  -- current from index register
     signal index_ins : INDEX;  -- index from ROM_INDEX
@@ -182,18 +170,23 @@ architecture behavior of test_cpu is
 
     signal C : std_logic_vector (P - M - 1 downto 0);  -- control bus
 
-    -- EXECUTIVE UNIT
+    -- BUS UNIT
 
-    signal addr_out : WORD;  -- address bus
-    signal addr_en : std_logic;  -- address enable
+    signal addr_en : std_logic;   -- bus enable
+    signal data_en : std_logic;   -- bus enable
 
-    signal data_in : WORD;       -- data bus input
-    signal data_val : WORD;      -- data bus input
-    signal data_out : WORD;      -- data bus output
+    signal rd_bus : std_logic;  -- bus read (inverted)
+    signal wr_bus : std_logic;  -- bus write (inverted)
+
+    signal addr_bus : WORD;  -- address bus
+    signal data_bus : WORD;  -- data bus
+
+    -- EXECUTE UNIT
+
+    signal data_in : WORD;       -- data input
+    signal data_out : WORD;      -- data output
     signal rd_en : std_logic;    -- read enable
     signal wr_en : std_logic;    -- write enable
-	signal rd_o  : std_logic;    -- read output strobe
-	signal rd_i  : std_logic;    -- read input strobe
 
     signal ins_val : WORD;
     signal ir_en : std_logic;  -- instruction register enable
@@ -231,9 +224,13 @@ architecture behavior of test_cpu is
 
 begin
 
-    NCK <= not CK;
+	-- MEMORY CHIP
 
-    -- CONTROL UNIT
+	ram : sram
+		generic map (DW => N, AW => N)
+		port map (D => data_bus, A => addr_bus, CS => '0', OE => rd_bus, WE => wr_bus);
+
+    -- PREPARE UNIT
 
     index_ins <= rom_index_0 (to_integer (unsigned (ins_val)));
 
@@ -241,7 +238,7 @@ begin
 
     index_reg: reg_w
         generic map (N => M)
-        port map (I => index_next, O => index_cur, E => '1', R => R, CK => NCK);
+        port map (I => index_next, O => index_cur, E => prep_en, R => R, CK => CK);
 
     step_cur <= rom_step_0 (to_integer (unsigned (index_cur)));
 
@@ -249,28 +246,30 @@ begin
 
     C <= step_cur (P-1 downto M);
 
-    acc_en     <= C (16);
-    sp_en      <= C (15);
-    dp_en      <= C (14);
-    ptr_sel    <= C (13); -- TODO: invert DP & SP
+    -- TODO: regroup enabled registers
 
-    ir_en      <= C (0);
+    acc_en     <= C (16) and exec_en;
+    sp_en      <= C (15) and exec_en;
+    dp_en      <= C (14) and exec_en;
+    ptr_sel    <= C (13);
+
+    ir_en      <= C (0) and exec_en;
     index_sel  <= C (1);
-    ip_en      <= C (2);
+    ip_en      <= C (2) and exec_en;
     ip_sel     <= C (3);
     addr_sel   <= C (4);
     alu_op     <= C (7 downto 5);
     wr_en      <= C (8);
-    rd_en      <= C (9) and NCK;
+    rd_en      <= C (9);
     right_sel  <= C (10);
     op_sel     <= C (11);
     left_sel   <= C (12);
 
-    -- EXECUTIVE UNIT
+    -- EXECUTE UNIT
 
     ins_reg: reg_w
         generic map (N => N)
-        port map (I => data_val, O => ins_val, E => ir_en, R => R, CK => CK);
+        port map (I => data_in, O => ins_val, E => ir_en, R => R, CK => CK);
 
     ip_next <= alu_val when ip_sel = '1' else addr_next;
 
@@ -292,27 +291,6 @@ begin
 
 	addr_next <= std_logic_vector (unsigned (addr_val) + to_unsigned (1, N));
 
-	addr_en <= wr_en or rd_en;
-
-	addr_out <= addr_val when addr_en = '1' else (WORD'range => 'Z');
-
-	-- asynchronous RAM timing when reading
-
-	process (R, rd_en)
-	begin
-		if R = '1' or rd_en = '0' then
-			rd_o <= '0';
-			rd_i <= '0';
-		else
-			rd_o <= '1' after 100 us;
-			rd_i <= '1' after 200 us;
-		end if;
-	end process;
-
-	data_in <= mem_0 (to_integer (unsigned (addr_out))) when rd_o = '1' else (WORD'range => 'Z');
-
-	data_val <= data_in when rd_i = '1';  -- infered latch
-
 	acc_reg: reg_w
 		generic map (N => N)
 		port map (I => alu_val, O => acc_val, E => acc_en, R => R, CK => CK);
@@ -320,7 +298,9 @@ begin
     op_val <= ip_val when op_sel = '1' else ptr_val;
 
     alu_left <= op_val when left_sel = '1' else acc_val;
-    alu_right <= op_val when right_sel = '1' else data_val;
+    alu_right <= op_val when right_sel = '1' else data_in;
+
+    -- TODO: replace arithmetic by logic for ALU
 
     alu_val <= alu_right when alu_op = "000"
         else alu_left when alu_op = "001"
@@ -329,14 +309,64 @@ begin
         else std_logic_vector (unsigned (alu_left) + to_unsigned (1, N)) when alu_op = "100"
         else std_logic_vector (unsigned (alu_left) - to_unsigned (1, N)) when alu_op = "101";
 
-    data_out <= alu_val when wr_en = '1' else (WORD'range => 'Z');
+    data_out <= alu_val;
 
-    mem_0 (to_integer (unsigned (addr_out))) <= data_out when wr_en = '1' and rising_edge (CK);
+	--- BUS UNIT
+
+	addr_bus <= (WORD'range => 'Z') when addr_en = '0' else addr_val;
+
+	data_in <= (WORD'range => '0') when data_en = '0' else data_bus when rd_en = '1';
+	data_bus <= (WORD'range => 'Z') when data_en = '0' else data_out when wr_en = '1';
+
+    -- PHASE UNIT
+
+    phase_1: process (R, CK)
+    begin
+        if R = '1' then
+            phase <= prep;
+
+        elsif rising_edge(CK) then
+            case phase is
+                when prep =>
+                    phase <= exec_1;
+                when exec_1 =>
+					if wr_en = '0' and rd_en = '0' then
+						phase <= prep;
+					else
+						phase <= exec_2;
+					end if;
+                when exec_2 =>
+					if rd_en = '1' then
+						phase <= prep;
+					else
+						phase <= exec_3;
+					end if;
+                when exec_3 =>
+					phase <= prep;
+            end case;
+        end if;
+
+    end process;
+
+	prep_en <= '1' when phase = prep else '0';
+
+	exec_en <= '1' when (phase = exec_1 and wr_en = '0' and rd_en = '0')
+		or (phase = exec_2 and rd_en = '1')
+		or (phase = exec_3) else '0';
+
+	addr_en <= '1' when (phase = exec_1 or phase = exec_2 or phase = exec_3) and (wr_en = '1' or rd_en = '1') else '0';
+	data_en <= '1' when (phase = exec_2 or phase = exec_3) and (wr_en = '1' or rd_en = '1') else '0';
+
+	rd_bus <= '0' when phase = exec_2 and rd_en = '1' else '1';  -- inverted
+	wr_bus <= '0' when phase = exec_2 and wr_en = '1' else '1';  -- inverted
+
+	-- RESET & CLOCK
 
     reset_1: process
     begin
         wait for 10 ms;
         R <= '0';
+		wait;
     end process;
 
     clock_1: process
@@ -346,6 +376,5 @@ begin
         wait for 1 ms;
         CK <= '0';
     end process;
-
 
 end architecture;
