@@ -85,8 +85,8 @@ architecture behavior of test_cpu is
     --       X              ALU left select (0: accumulator, 1: pointer)
     --        X             operand select (0: data pointer, 1: IP)
     --         X            ALU right select (0: data input, 1: pointer value)
-    --          X           data read enable
-    --           X          data write enable
+    --          X           bus enable
+    --           X          bus way (0: read, 1: write)
     --            XXX       ALU operation select (000: right, 001: left, 010: add, 011: sub, 100: inc, 101: dec)
     --               X      address source select (0: IP, 1: data pointer)
     --                X     IP next select (0: address + 1, 1: ALU ouput)
@@ -100,7 +100,7 @@ architecture behavior of test_cpu is
         "10000001000000100" & "00001",  -- 02h  LD A,imm = LD A,(IP++)
         "00100001000000100" & "00001",  -- 03h  LD DP,imm = LD DP,(IP++)
         "10000001000010000" & "00001",  -- 04h  LD A,(DP)
-        "00000000100110000" & "00001",  -- 05h  ST A,(DP)
+        "00000001100110000" & "00001",  -- 05h  ST A,(DP)
         "00100001000000100" & "00101",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
         "00000000000000000" & "00000",  -- 07h
         "00100001000000100" & "00101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
@@ -118,7 +118,7 @@ architecture behavior of test_cpu is
         "10000010000000000" & "00001",  -- 14h  MV A,DP
         "10000110000000000" & "00001",  -- 15h  MV A,IP
         "01011000010100000" & "10111",  -- 16h  CALL imm = DEC SP...
-        "00011100110010000" & "01100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
+        "00011101110010000" & "01100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
         "00000000000000000" & "00000",  -- 18h
         "00000000000000000" & "00000",  -- 19h
         "00010001000011100" & "11011",  -- 1Ah  RET = LD IP,(SP)...
@@ -172,23 +172,24 @@ architecture behavior of test_cpu is
 
     -- BUS UNIT
 
-    signal addr_en : std_logic;   -- bus enable
-    signal data_en : std_logic;   -- bus enable
+    signal addr_en : std_logic;  -- bus enable
+    signal data_en : std_logic;  -- bus enable
 
-    signal rd_bus : std_logic;  -- bus read (inverted)
-    signal wr_bus : std_logic;  -- bus write (inverted)
+    signal rd_bus : std_logic;   -- bus read (inverted)
+    signal wr_bus : std_logic;   -- bus write (inverted)
 
-    signal addr_bus : WORD;  -- address bus
-    signal data_bus : WORD;  -- data bus
+    signal addr_bus : WORD;      -- address bus
+    signal data_bus : WORD;      -- data bus
+
+    signal bus_en : std_logic;   -- bus enable
+    signal bus_way : std_logic;  -- bus way (0:read 1:write)
 
     -- EXECUTE UNIT
 
-    signal data_in : WORD;       -- data input
-    signal data_out : WORD;      -- data output
-    signal rd_en : std_logic;    -- read enable
-    signal wr_en : std_logic;    -- write enable
+    signal data_in : WORD;     -- data input
+    signal data_out : WORD;    -- data output
 
-    signal ins_val : WORD;
+    signal ins_val : WORD;     -- instruction register current value
     signal ir_en : std_logic;  -- instruction register enable
 
     signal ip_next : WORD;     -- instruction pointer next value
@@ -259,8 +260,8 @@ begin
     ip_sel     <= C (3);
     addr_sel   <= C (4);
     alu_op     <= C (7 downto 5);
-    wr_en      <= C (8);
-    rd_en      <= C (9);
+    bus_way    <= C (8);
+    bus_en     <= C (9);
     right_sel  <= C (10);
     op_sel     <= C (11);
     left_sel   <= C (12);
@@ -315,8 +316,11 @@ begin
 
 	addr_bus <= (WORD'range => 'Z') when addr_en = '0' else addr_val;
 
-	data_in <= (WORD'range => '0') when data_en = '0' else data_bus when rd_en = '1';
-	data_bus <= (WORD'range => 'Z') when data_en = '0' else data_out when wr_en = '1';
+	data_in <= (WORD'range => '0') when data_en = '0'
+		else data_bus when bus_way = '0';
+
+	data_bus <= (WORD'range => 'Z') when data_en = '0'
+		else data_out when bus_way = '1';
 
     -- PHASE UNIT
 
@@ -330,13 +334,13 @@ begin
                 when prep =>
                     phase <= exec_1;
                 when exec_1 =>
-					if wr_en = '0' and rd_en = '0' then
+					if bus_en = '0' then
 						phase <= prep;
 					else
 						phase <= exec_2;
 					end if;
                 when exec_2 =>
-					if rd_en = '1' then
+					if bus_way = '0' then
 						phase <= prep;
 					else
 						phase <= exec_3;
@@ -350,15 +354,18 @@ begin
 
 	prep_en <= '1' when phase = prep else '0';
 
-	exec_en <= '1' when (phase = exec_1 and wr_en = '0' and rd_en = '0')
-		or (phase = exec_2 and rd_en = '1')
+	exec_en <= '1' when (phase = exec_1 and bus_en = '0')
+		or (phase = exec_2 and bus_way = '0')
 		or (phase = exec_3) else '0';
 
-	addr_en <= '1' when (phase = exec_1 or phase = exec_2 or phase = exec_3) and (wr_en = '1' or rd_en = '1') else '0';
-	data_en <= '1' when (phase = exec_2 or phase = exec_3) and (wr_en = '1' or rd_en = '1') else '0';
+	addr_en <= '1' when (phase = exec_1 and bus_en = '1')
+		or phase = exec_2 or phase = exec_3 else '0';
 
-	rd_bus <= '0' when phase = exec_2 and rd_en = '1' else '1';  -- inverted
-	wr_bus <= '0' when phase = exec_2 and wr_en = '1' else '1';  -- inverted
+	data_en <= '1' when (phase = exec_1 and bus_way = '1')
+		or phase = exec_2 or phase = exec_3 else '0';
+
+	rd_bus <= '0' when phase = exec_2 and bus_way = '0' else '1';  -- inverted
+	wr_bus <= '0' when phase = exec_2 and bus_way = '1' else '1';  -- inverted
 
 	-- RESET & CLOCK
 
