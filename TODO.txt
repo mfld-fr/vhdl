@@ -3,14 +3,16 @@ CPU88
 - Add zero flag
 - Add carry flag
 - Conditional branching
-- Complete ALU (add, sub, or, and, xor, inc, dec, shl, shr...)
-- Instruction encoding / decoding
-- Bus control & wait states (for static RAM)
-- Add 2 more pointer registers (P0..P3)
+- Assert nCS after AD (limit signal transitions)
+- Complete ALU (or, and, xor, shl, shr...)
+- Instruction encoding / decoding : register mask, operation mask
+- Move from 2 pointer registers (DP,SP) to 4 (R0..R3) and R3 = SP
+- Address pre/post increment/decrement (Rn++ / --Rn)
 - Interrupt handling
 - Add HLT instruction
-- Address pre/post increment/decrement
+- ROM / RAM selection
 
 CPU168
 
 - Register pairs for addressing
+- Link register with pre / post - decrement / increment

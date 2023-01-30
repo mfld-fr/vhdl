@@ -6,9 +6,10 @@ use ieee.numeric_std.all;
 entity test_cpu is
 
     generic (
-        N : positive := 5;  -- word width
-        M : positive := 5;  -- index width
-        P : positive := 22  -- step width
+        N : positive := 8;  -- data word width
+		W : positive := 6;  -- instruction index width
+		M : positive := 5;  -- step index width
+        P : positive := 27  -- step word width
         );
 
 end entity;
@@ -37,7 +38,7 @@ architecture behavior of test_cpu is
 	end component;
         
     subtype INDEX is std_logic_vector (M-1 downto 0);
-    type ROM_INDEX is array (0 to 2**N - 1) of INDEX;
+    type ROM_INDEX is array (0 to 2**W - 1) of INDEX;
 
     constant rom_index_0: ROM_INDEX := (
         "00000",  -- 00h -> 00h  NOP
@@ -71,62 +72,97 @@ architecture behavior of test_cpu is
         "00000",  -- 1Ch -> 00h  NOP
         "00000",  -- 1Dh -> 00h  NOP
         "11110",  -- 1Eh -> 1Eh  INC A
-        "11111"   -- 1Fh -> 1Fh  DEC A
+        "11111",  -- 1Fh -> 1Fh  DEC A
+        "00000",  -- 20h -> 00h  NOP
+        "00000",  -- 21h -> 00h  NOP
+        "00000",  -- 22h -> 00h  NOP
+        "00000",  -- 23h -> 00h  NOP
+        "00000",  -- 24h -> 00h  NOP
+        "00000",  -- 25h -> 00h  NOP
+        "00000",  -- 26h -> 00h  NOP
+        "00000",  -- 27h -> 00h  NOP
+        "00000",  -- 28h -> 00h  NOP
+        "00000",  -- 29h -> 00h  NOP
+        "00000",  -- 2Ah -> 00h  NOP
+        "00000",  -- 2Bh -> 00h  NOP
+        "00000",  -- 2Ch -> 00h  NOP
+        "00000",  -- 2Dh -> 00h  NOP
+        "00000",  -- 2Eh -> 00h  NOP
+        "00000",  -- 2Fh -> 00h  NOP
+        "00000",  -- 30h -> 00h  NOP
+        "00000",  -- 31h -> 00h  NOP
+        "00000",  -- 32h -> 00h  NOP
+        "00000",  -- 33h -> 00h  NOP
+        "00000",  -- 34h -> 00h  NOP
+        "00000",  -- 35h -> 00h  NOP
+        "00000",  -- 36h -> 00h  NOP
+        "00000",  -- 37h -> 00h  NOP
+        "00000",  -- 38h -> 00h  NOP
+        "00000",  -- 39h -> 00h  NOP
+        "00000",  -- 3Ah -> 00h  NOP
+        "00000",  -- 3Bh -> 00h  NOP
+        "00000",  -- 3Ch -> 00h  NOP
+        "00000",  -- 3Dh -> 00h  NOP
+        "00000",  -- 3Eh -> 00h  NOP
+        "00000"   -- 3Fh -> 00h  NOP
         );
 
     subtype STEP is std_logic_vector (P-1 downto 0);
     type ROM_STEP is array (0 to 2**M - 1) of STEP;
 
-    --   0FEDCBA9876543210
-    --   X                  A enable
-    --    X                 SP enable
-    --     X                DP enable
-    --      X               pointer select (0: DP, 1: SP)
-    --       X              ALU left select (0: accumulator, 1: pointer)
-    --        X             operand select (0: data pointer, 1: IP)
-    --         X            ALU right select (0: data input, 1: pointer value)
-    --          X           bus enable
-    --           X          bus way (0: read, 1: write)
-    --            XXX       ALU operation select (000: right, 001: left, 010: add, 011: sub, 100: inc, 101: dec)
-    --               X      address source select (0: IP, 1: data pointer)
-    --                X     IP next select (0: address + 1, 1: ALU ouput)
-    --                 X    IP enable
-    --                  X   next index select (0: step, 1: IR)
-    --                   X  IR enable
+    --   54   3210   FE   DCBA9876543210
+    --   XX                               constant select (00: +0, 01: data register, 10: +1, 11: -1)
+    --        X                           A enable
+    --         X                          SP enable
+    --          X                         DP enable
+    --           X                        pointer select (0: DP, 1: SP)
+    --               XX                   register select (00: DP, 01: SP)
+    --                    X               ALU left select (0: accumulator, 1: pointer)
+    --                     X              operand select (0: data pointer, 1: IP)
+    --                      X             ALU right select (0: data input, 1: operand)
+    --                       X            data out select (0: ALU output, 1: ALU right)
+    --                        X           bus enable
+    --                         X          bus way (0: read, 1: write)
+    --                          XXX       ALU operation select (000: ADD, 001: xxx, 010: SUB, 011: xxx, 100: xxx, 101: xxx)
+    --                             X      address source select (0: IP, 1: data pointer)
+    --                              X     IP next select (0: address + 1, 1: ALU ouput)
+    --                               X    IP enable
+    --                                X   next index select (0: step, 1: IR)
+    --                                 X  IR enable
 
     constant rom_step_0: ROM_STEP := (
-        "00000000000000000" & "00001",  -- 00h  NOP instruction
-        "00000001000000111" & "00001",  -- 01h  LD IR,(IP++) & decode instruction
-        "10000001000000100" & "00001",  -- 02h  LD A,imm = LD A,(IP++)
-        "00100001000000100" & "00001",  -- 03h  LD DP,imm = LD DP,(IP++)
-        "10000001000010000" & "00001",  -- 04h  LD A,(DP)
-        "00000001100110000" & "00001",  -- 05h  ST A,(DP)
-        "00100001000000100" & "00101",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
-        "00000000000000000" & "00000",  -- 07h
-        "00100001000000100" & "00101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
-        "00000000000000000" & "00000",  -- 09h
-        "00100001000010000" & "00001",  -- 0Ah  LD DP,(DP)
-        "00100001000000100" & "01010",  -- 0Bh  LD DP,(addr) = LD DP,addr -> LD DP,(DP)
-        "00000001000001100" & "00001",  -- 0Ch  JMP imm = LD IP,imm = LD IP,(IP++)
-        "00000000000000000" & "00000",  -- 0Dh
-        "10000001001000100" & "00001",  -- 0Eh  ADD A,imm
-        "10000001001100100" & "00001",  -- 0Fh  SUB A,imm
-        "00000000000000000" & "00000",  -- 10h
-        "00100000000100000" & "00001",  -- 12h  MV DP,A
-        "00000000000000000" & "00000",  -- 11h
-        "00000000000101100" & "00001",  -- 13h  MV IP,A
-        "10000010000000000" & "00001",  -- 14h  MV A,DP
-        "10000110000000000" & "00001",  -- 15h  MV A,IP
-        "01011000010100000" & "10111",  -- 16h  CALL imm = DEC SP...
-        "00011101110010000" & "01100",  -- 17h  ...ST ++IP,(SP) -> JMP imm
-        "00000000000000000" & "00000",  -- 18h
-        "00000000000000000" & "00000",  -- 19h
-        "00010001000011100" & "11011",  -- 1Ah  RET = LD IP,(SP)...
-        "01011000010000000" & "00001",  -- 1Bh  ...INC SP
-        "00000000000000000" & "00000",  -- 1Ch
-        "00000000000000000" & "00000",  -- 1Dh
-        "10000000010000000" & "00001",  -- 1Eh  INC A
-        "10000000010100000" & "00001"   -- 1Fh  DEC A
+        "00"&"0000"&"00"&"00000000000000" & "00001",  -- 00h  INIT instruction
+        "01"&"0000"&"00"&"00011000000111" & "00001",  -- 01h  LD IR,(IP++) & decode instruction
+        "01"&"1000"&"00"&"00011000000100" & "00001",  -- 02h  LD A,imm = LD A,(IP++)
+        "01"&"0010"&"00"&"00011000000100" & "00001",  -- 03h  LD DP,imm = LD DP,(IP++)
+        "01"&"1000"&"00"&"00011000010000" & "00001",  -- 04h  LD A,(DP)
+        "00"&"0000"&"00"&"00001100010000" & "00001",  -- 05h  ST A,(DP) with transparent ADD A,0
+        "01"&"0010"&"00"&"00011000000100" & "00100",  -- 06h  LD A,(addr) = LD DP,addr -> LD A,(DP)
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 07h
+        "01"&"0010"&"00"&"00011000000100" & "00101",  -- 08h  ST A,(addr) = LD DP,addr -> ST A,(DP)
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 09h
+        "01"&"0010"&"00"&"00011000010000" & "00001",  -- 0Ah  LD DP,(DP)
+        "01"&"0010"&"00"&"00011000000100" & "01010",  -- 0Bh  LD DP,(addr) = LD DP,addr -> LD DP,(DP)
+        "01"&"0000"&"00"&"00011000001100" & "00001",  -- 0Ch  JMP imm = LD IP,(IP)
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 0Dh
+        "01"&"1000"&"00"&"00001000000100" & "00001",  -- 0Eh  ADD A,imm
+        "01"&"1000"&"00"&"00001001000100" & "00001",  -- 0Fh  SUB A,imm
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 10h
+        "00"&"0010"&"00"&"00000000000000" & "00001",  -- 12h  MV DP,A with transparent ADD A,0
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 11h
+        "00"&"0000"&"00"&"00000000001100" & "00001",  -- 13h  MV IP,A with transparent ADD A,0
+        "00"&"1000"&"00"&"00110000000000" & "00001",  -- 14h  MV A,DP
+        "00"&"1000"&"00"&"01110000000000" & "00001",  -- 15h  MV A,IP
+        "10"&"0100"&"01"&"10001001000100" & "10111",  -- 16h  CALL imm = LD DR,imm & DEC SP...
+        "00"&"0001"&"01"&"01111100010000" & "11000",  -- 17h  ...ST IP,(SP)...
+        "01"&"0000"&"00"&"00010000001100" & "00001",  -- 18h  ...LD IP,DR
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 19h  
+        "01"&"0001"&"00"&"00011000011100" & "11011",  -- 1Ah  RET = LD IP,(SP)...
+        "10"&"0100"&"01"&"10000000000000" & "00001",  -- 1Bh  ...INC SP = ADD SP,1
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 1Ch
+        "00"&"0000"&"00"&"00000000000000" & "00000",  -- 1Dh
+        "10"&"1000"&"00"&"00000000000000" & "00001",  -- 1Eh  INC A = ADD A,1
+        "10"&"1000"&"00"&"00000001000000" & "00001"   -- 1Fh  DEC A = SUB A,1
         );
 
     component reg_w is
@@ -149,15 +185,17 @@ architecture behavior of test_cpu is
 
     signal R : std_logic := '1';
 
-    -- PHASE UNIT
+    -- CONTROL UNIT
 
-    type phase_type is (prep, exec_1, exec_2, exec_3);
-    signal phase : phase_type;
+    type control_step is (control_prep, control_exec);
+    signal control_now : control_step;
 
     signal prep_en : std_logic;
     signal exec_en : std_logic;
 
     -- PREPARE UNIT
+
+    signal ir_index : std_logic_vector (W - 1 downto 0);  -- instruction index
 
     signal index_cur : INDEX;  -- current from index register
     signal index_ins : INDEX;  -- index from ROM_INDEX
@@ -172,6 +210,9 @@ architecture behavior of test_cpu is
 
     -- BUS UNIT
 
+    type bus_step is (bus_step1, bus_step2, bus_step3);
+    signal bus_now : bus_step;
+
     signal addr_en : std_logic;  -- bus enable
     signal data_en : std_logic;  -- bus enable
 
@@ -180,16 +221,23 @@ architecture behavior of test_cpu is
 
     signal addr_bus : WORD;      -- address bus
     signal data_bus : WORD;      -- data bus
+    signal dr_val   : WORD;      -- data register current value
 
     signal bus_en : std_logic;   -- bus enable
     signal bus_way : std_logic;  -- bus way (0:read 1:write)
+
+    signal bus_done : std_logic; -- bus done
+    signal dr_en : std_logic;    -- data register enable
 
     -- EXECUTE UNIT
 
     signal data_in : WORD;     -- data input
     signal data_out : WORD;    -- data output
+    signal data_val : WORD;
+    signal data_sel : std_logic;  -- data select (0: alu_val, 1:alu_right)
+    signal const_sel : std_logic_vector (1 downto 0); -- constant select (00: +0, 01: data register, 10: +1, 11: -1)
 
-    signal ins_val : WORD;     -- instruction register current value
+    signal ir_val : WORD;      -- instruction register current value
     signal ir_en : std_logic;  -- instruction register enable
 
     signal ip_next : WORD;     -- instruction pointer next value
@@ -202,15 +250,18 @@ architecture behavior of test_cpu is
     signal sp_en : std_logic;  -- stack pointer input enable
     signal dp_en : std_logic;  -- data pointer input enable
 
-    signal ptr_val : WORD;       -- pointer register value
-    signal ptr_sel : std_logic;  -- pointer register value select
+    signal ptr_val : WORD;       -- pointer value
+    signal ptr_sel : std_logic;  -- pointer select
 
     signal addr_val : WORD;       -- address current value
     signal addr_next : WORD;      -- address next value (incremented)
-    signal addr_sel : std_logic;  -- select address ouput source
+    signal addr_sel : std_logic;  -- select address source (pointers or IP)
 
-    signal op_val : WORD;         -- pointer operand value
-    signal op_sel : std_logic;    -- pointer operand select
+    signal reg_val : WORD;        -- register value
+    signal reg_sel : std_logic_vector (1 downto 0);   -- register select
+
+    signal op_val : WORD;         -- operand value
+    signal op_sel : std_logic;    -- operand select
 
     signal acc_en  : std_logic;   -- accumulator A enable
     signal acc_val : WORD;        -- accumulator A value
@@ -228,12 +279,28 @@ begin
 	-- MEMORY CHIP
 
 	ram : sram
-		generic map (DW => N, AW => N)
-		port map (D => data_bus, A => addr_bus, CS => '0', OE => rd_bus, WE => wr_bus);
+		generic map (DW => N, AW => 5)
+		port map (D => data_bus, A => addr_bus (4 downto 0), CS => '0', OE => rd_bus, WE => wr_bus);
+
+	-- DECODE UNIT
+
+	-- instruction index from instruction word
+	ir_index <= "0" & ir_val (4 downto 0) when ir_val (7 downto 5) = "000" else "000000";
+	-- ir_index <= "0000" & ir_val (N-2 downto N-3) when ir_val (N-1) = '0'
+	--	else "0001" & ir_val (1 downto 0) when ir_val (N-1 downto N-2) = "100"
+	--	else "001" & ir_val (4 downto 2) when ir_val (N-1 downto N-2) = "101"
+	--	else "010" & ir_val (4 downto 2) when ir_val (N-1 downto N-2) = "110"
+	--	else "1" & ir_val (4 downto 0) when ir_val (N-1 downto N-2) = "111";
+	--	else "1" & ir_val (1 downto 0) & ir_val (4 downto 2) when ir_val (N-1 downto N-2) = "111";
+
+	-- register mask in instruction word
+	-- ir_reg <= ir_val (1 downto 0) when ir_val (N-1) = '0'
+	--	or ir_val (N-1 downto N-2) = '101'
+	--	or ir_val (N-1 downto N-2) = '110';
 
     -- PREPARE UNIT
 
-    index_ins <= rom_index_0 (to_integer (unsigned (ins_val)));
+    index_ins <= rom_index_0 (to_integer (unsigned (ir_index)));
 
     index_next <= index_ins when index_sel = '1' else index_step;
 
@@ -249,30 +316,32 @@ begin
 
     -- TODO: regroup enabled registers
 
-    acc_en     <= C (16) and exec_en;
-    sp_en      <= C (15) and exec_en;
-    dp_en      <= C (14) and exec_en;
-    ptr_sel    <= C (13);
-
-    ir_en      <= C (0) and exec_en;
-    index_sel  <= C (1);
-    ip_en      <= C (2) and exec_en;
-    ip_sel     <= C (3);
-    addr_sel   <= C (4);
-    alu_op     <= C (7 downto 5);
+    const_sel  <= C (21 downto 20);
+    acc_en     <= C (19) and exec_en;
+    sp_en      <= C (18) and exec_en;
+    dp_en      <= C (17) and exec_en;
+    ptr_sel    <= C (16);
+    reg_sel    <= C (15 downto 14);
+    left_sel   <= C (13);
+    op_sel     <= C (12);
+    right_sel  <= C (11);
+    data_sel   <= C (10);
+    bus_en     <= C (9) and not prep_en;
     bus_way    <= C (8);
-    bus_en     <= C (9);
-    right_sel  <= C (10);
-    op_sel     <= C (11);
-    left_sel   <= C (12);
+    alu_op     <= C (7 downto 5);
+    addr_sel   <= C (4);
+    ip_sel     <= C (3);
+    ip_en      <= C (2) and exec_en;
+    index_sel  <= C (1);
+    ir_en      <= C (0) and exec_en;
 
     -- EXECUTE UNIT
 
     ins_reg: reg_w
         generic map (N => N)
-        port map (I => data_in, O => ins_val, E => ir_en, R => R, CK => CK);
+        port map (I => data_val, O => ir_val, E => ir_en, R => R, CK => CK);
 
-    ip_next <= alu_val when ip_sel = '1' else addr_next;
+    ip_next <= data_out when ip_sel = '1' else addr_next;
 
     ip_reg: reg_w
         generic map (N => N)
@@ -280,103 +349,124 @@ begin
 
     dp_reg: reg_w
         generic map (N => N)
-        port map (I => alu_val, O => dp_val, E => dp_en, R => R, CK => CK);
+        port map (I => data_out, O => dp_val, E => dp_en, R => R, CK => CK);
 
     sp_reg: reg_w
         generic map (N => N)
-        port map (I => alu_val, O => sp_val, E => sp_en, R => R, CK => CK);
+        port map (I => data_out, O => sp_val, E => sp_en, R => R, CK => CK);
 
     ptr_val <= sp_val when ptr_sel = '1' else dp_val;
-
     addr_val <= ptr_val when addr_sel = '1' else ip_val;
 
 	addr_next <= std_logic_vector (unsigned (addr_val) + to_unsigned (1, N));
 
 	acc_reg: reg_w
 		generic map (N => N)
-		port map (I => alu_val, O => acc_val, E => acc_en, R => R, CK => CK);
+		port map (I => data_out, O => acc_val, E => acc_en, R => R, CK => CK);
 
-    op_val <= ip_val when op_sel = '1' else ptr_val;
+	reg_val <= sp_val when reg_sel = "01" else dp_val when reg_sel = "00";
+	op_val <= ip_val when op_sel = '1' else reg_val;
 
     alu_left <= op_val when left_sel = '1' else acc_val;
-    alu_right <= op_val when right_sel = '1' else data_in;
+    alu_right <= op_val when right_sel = '1' else data_val;
 
     -- TODO: replace arithmetic by logic for ALU
 
-    alu_val <= alu_right when alu_op = "000"
-        else alu_left when alu_op = "001"
-        else std_logic_vector (unsigned (alu_left) + unsigned (alu_right)) when alu_op = "010"
-        else std_logic_vector (unsigned (alu_left) - unsigned (alu_right)) when alu_op = "011"
+    alu_val <= std_logic_vector (unsigned (alu_left) + unsigned (alu_right)) when alu_op = "000"
+        else std_logic_vector (unsigned (alu_left) - unsigned (alu_right)) when alu_op = "010"
         else std_logic_vector (unsigned (alu_left) + to_unsigned (1, N)) when alu_op = "100"
         else std_logic_vector (unsigned (alu_left) - to_unsigned (1, N)) when alu_op = "101";
 
-    data_out <= alu_val;
+    data_out <= alu_val when data_sel = '0' else alu_right;
 
 	--- BUS UNIT
 
 	addr_bus <= (WORD'range => 'Z') when addr_en = '0' else addr_val;
 
-	data_in <= (WORD'range => '0') when data_en = '0'
-		else data_bus when bus_way = '0';
+	-- Keep data input to default 0 for ALU ADD transparency
+	data_in <= data_bus when data_en = '1' and bus_way = '0'
+		else (WORD'range => '0');
 
-	data_bus <= (WORD'range => 'Z') when data_en = '0'
-		else data_out when bus_way = '1';
+	data_bus <= data_out when data_en = '1' and bus_way = '1'
+		else (WORD'range => 'Z');
 
-    -- PHASE UNIT
+    dr_reg: reg_w
+        generic map (N => N)
+        port map (I => data_in, O => dr_val, E => dr_en, R => R, CK => CK);
 
-    phase_1: process (R, CK)
+    data_val <= (WORD'range => '0') when const_sel = "00"
+        else dr_val when const_sel = "01"
+        else (7 downto 1 => '0', 0 => '1') when const_sel = "10"
+        else (WORD'range => '1') when const_sel = "11";
+
+    -- CONTROL UNIT
+
+    control_seq : process (R, CK)
     begin
         if R = '1' then
-            phase <= prep;
+            control_now <= control_prep;
 
         elsif rising_edge(CK) then
-            case phase is
-                when prep =>
-                    phase <= exec_1;
-                when exec_1 =>
-					if bus_en = '0' then
-						phase <= prep;
-					else
-						phase <= exec_2;
+            case control_now is
+                when control_prep =>
+                    control_now <= control_exec;
+                when control_exec =>
+					if bus_en = '0' or bus_done = '1' then
+						control_now <= control_prep;
 					end if;
-                when exec_2 =>
-					if bus_way = '0' then
-						phase <= prep;
-					else
-						phase <= exec_3;
-					end if;
-                when exec_3 =>
-					phase <= prep;
             end case;
         end if;
 
     end process;
 
-	prep_en <= '1' when phase = prep else '0';
+	prep_en <= '1' when control_now = control_prep else '0';
 
-	exec_en <= '1' when (phase = exec_1 and bus_en = '0')
-		or (phase = exec_2 and bus_way = '0')
-		or (phase = exec_3) else '0';
+	exec_en <= '1' when control_now = control_exec and (bus_en = '0' or bus_done ='1') else '0';
 
-	addr_en <= '1' when (phase = exec_1 and bus_en = '1')
-		or phase = exec_2 or phase = exec_3 else '0';
+    -- BUS UNIT
 
-	data_en <= '1' when (phase = exec_1 and bus_way = '1')
-		or phase = exec_2 or phase = exec_3 else '0';
+    bus_seq : process (R, CK)
+    begin
+        if R = '1' then
+            bus_now <= bus_step1;
 
-	rd_bus <= '0' when phase = exec_2 and bus_way = '0' else '1';  -- inverted
-	wr_bus <= '0' when phase = exec_2 and bus_way = '1' else '1';  -- inverted
+        elsif rising_edge(CK) then
+            case bus_now is
+                when bus_step1 =>
+                    if bus_en = '1' then
+                        bus_now <= bus_step2;
+                    end if;
+                when bus_step2 =>
+                    bus_now <= bus_step3;
+                when bus_step3 =>
+                    bus_now <= bus_step1;
+            end case;
+        end if;
+
+    end process;
+
+	addr_en <= '1' when (bus_now = bus_step1 and bus_en = '1')
+		or bus_now = bus_step2 or bus_now = bus_step3 else '0';
+
+	data_en <= '1' when (bus_now = bus_step1 and bus_way = '1')
+		or bus_now = bus_step2 or (bus_now = bus_step3 and bus_way = '1') else '0';
+
+	rd_bus <= '0' when bus_now = bus_step2 and bus_way = '0' else '1';  -- inverted
+	wr_bus <= '0' when bus_now = bus_step2 and bus_way = '1' else '1';  -- inverted
+
+    dr_en <= '1' when bus_now = bus_step2 and bus_way = '0' else '0';
+    bus_done <= '1' when bus_now = bus_step3 else '0';
 
 	-- RESET & CLOCK
 
-    reset_1: process
+    reset_0: process
     begin
         wait for 10 ms;
         R <= '0';
 		wait;
     end process;
 
-    clock_1: process
+    clock_0: process
     begin
         wait for 1 ms;
         CK <= '1' nand R;

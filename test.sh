@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. env.sh
+. ./env.sh
 
 ghdl_mcode -a test-cpu.vhd
 ghdl_mcode -e test-cpu
