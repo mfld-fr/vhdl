@@ -1,6 +1,9 @@
+use std.textio.all;
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.std_logic_textio.all;
 
 -- Asynchronous static RAM chip
 
@@ -29,41 +32,30 @@ architecture behavior of sram is
 
     type MEMORY is array (0 to 2**AW - 1) of WORD;
 
-	-- TODO: move to ROM chip
-    signal mem: MEMORY := (
-        "00000011",  -- 00h  LD DP,1Dh
-        "00011101",  -- 01h  ...
-        "00010110",  -- 02h  CALL 10h
-        "00010000",  -- 03h  ...
-        "00000011",  -- 04h  LD DP,1Eh
-        "00011110",  -- 05h  ...
-        "00010110",  -- 06h  CALL 18h
-        "00011000",  -- 07h  ...
-        "00001100",  -- 08h  JMP 0h
-        "00000000",  -- 09h  ...
-        "00000000",  -- 0Ah  NOP
-        "00000000",  -- 0Bh  NOP
-        "00000000",  -- 0Ch  NOP
-        "00000000",  -- 0Dh  NOP
-        "00000000",  -- 0Eh  NOP
-        "00000000",  -- 0Fh  NOP
-        "00000100",  -- 10h  LD A,(DP)
-        "00011110",  -- 11h  INC A
-        "00000101",  -- 12h  ST A,(DP)
-        "00010111",  -- 13h  RET
-        "00000000",  -- 14h  NOP
-        "00000000",  -- 15h  NOP
-        "00000000",  -- 16h  NOP
-        "00000000",  -- 17h  NOP
-        "00000100",  -- 18h  LD A,(DP)
-        "00011111",  -- 19h  DEC A
-        "00000101",  -- 1Ah  ST A,(DP)
-        "00010111",  -- 1Bh  RET
-        "00000000",  -- 1Ch  NOP
-        "00000000",  -- 1Dh  DW 0h (count 1)
-        "00000000",  -- 1Eh  DW 0h (count 2)
-        "00000000"   -- 1Fh  DW 0h (stack)
-        );
+    impure function init_ram return MEMORY is
+
+        file text_file : TEXT open read_mode is "sram.txt";
+        variable text_line : LINE;
+		variable i : integer := 0;
+		variable mem_0 : MEMORY;
+
+    begin
+        while not endfile (text_file) loop
+            readline (text_file, text_line);
+            bread (text_line, mem_0 (i));
+			i := i + 1;
+        end loop;
+
+		for j in i to 2**AW - 1 loop
+			mem_0 (j) := (WORD'range => '1');
+		end loop;
+
+		return mem_0;
+
+    end function init_ram;
+
+    signal mem: MEMORY := init_ram;
+
 
 begin
 
